@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "otel-demo-app"
+version = "0.1.0"
+description = "FastAPI + Kafka + Postgres async round-trip service for the OpenTelemetry / LGTM talk."
+authors = ["Robert"]
+license = "Apache-2.0"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+# Target runtime is Python 3.14 (see the prerequisites chapter). The range stays
+# open to 3.12+ so the demo installs on whatever supported CPython the current
+# UBI image ships while the 3.14 image tag is being confirmed (open question in
+# the PRD; tracked in the reconciliation plan).
+python = ">=3.12,<3.15"
+fastapi = "0.115.6"
+uvicorn = { version = "0.34.0", extras = ["standard"] }
+aiokafka = "0.12.0"
+asyncpg = "0.30.0"
+
+[tool.poetry.scripts]
+run-api = "app.api:main"
+run-worker = "app.worker:main"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"

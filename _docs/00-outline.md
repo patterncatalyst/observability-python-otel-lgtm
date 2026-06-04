@@ -1,0 +1,48 @@
+---
+title: "Outline"
+order: 0
+part: "Foundations"
+description: "What this talk covers, the running example, and the two ways to deliver it."
+duration: 3 minutes
+---
+
+This is a hands-on talk about making a real Python service observable. The
+running example is small but complete: a FastAPI service that accepts a request,
+sends it across Kafka to a separate worker, which reads and writes Postgres and
+sends a reply back across Kafka — an async round trip. Over the talk that
+service grows traces, metrics, and logs from a single OpenTelemetry SDK, all
+correlated in a self-hosted Grafana stack, with an OpenTelemetry Collector in
+the path making the sampling and routing decisions.
+
+Everything runs locally under Podman. There are no paid accounts and no managed
+cloud on the path — the whole backend is the open-source Grafana **LGTM** stack:
+**L**oki for logs, **G**rafana to view them, **T**empo for traces, and
+**M**imir for metrics.
+
+## The arc
+
+| Part | Theme | Chapters |
+|---|---|---|
+| **Foundations** | the stack, the signals, the app | Outline, Prerequisites, Fundamentals, The demo app |
+| **The three signals** | traces, metrics, logs — and correlation | Auto-instrumentation, Metrics, Logs, Custom spans across Kafka |
+| **The pipeline** | the Collector and the payoff | The hybrid approach, Sampling, Profiling, The correlated view |
+
+## Two ways to deliver it
+
+The same materials run as a 90-minute core talk or a half-day workshop. The core
+path is the foundations, the four headline demos (auto-instrumentation, logs to
+traces, custom spans across the Kafka hop, and the correlated view), and the
+sampling discussion. The full workshop runs every demo live, including metrics,
+the hybrid pattern, and continuous profiling, with one break in the middle.
+
+What this talk is *not*: it does not teach Python, FastAPI, Kafka, or Postgres
+fundamentals; it does not deploy any of this to Kubernetes; and it does not
+compare commercial observability vendors. The backend is self-hosted and
+vendor-neutral, so mapping any of it to a managed service later is yours to do.
+
+The next chapter covers what you need installed to follow along.
+
+---
+
+*Verification status: <span class="status status--unverified">unverified</span>.
+The duration estimates are targets to confirm in a timed rehearsal.*

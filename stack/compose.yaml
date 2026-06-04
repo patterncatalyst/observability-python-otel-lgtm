@@ -1,0 +1,182 @@
+# stack/compose.yaml
+#
+# The one shared stack for every demo in this talk. Bring it up once:
+#
+#   cd stack && podman compose up --build
+#
+# Service connection summary (from inside the compose network):
+#   Database:   postgres:5432
+#   Kafka:      kafka:9094   (DOCKER listener for compose-internal clients)
+#   Telemetry:  http://lgtm:4318   (OTLP/HTTP)
+#   Grafana UI: http://localhost:3000   (from the host)
+#   API:        http://localhost:8080   (from the host)
+#
+# Roughly 3 GB of memory across all services on a fresh start. macOS users:
+# give the Podman machine >= 4 GB.
+
+# Shared application environment. `x-` keys are ignored by compose and exist
+# only to be merged into both app services below via the YAML anchor.
+x-app-env: &app_env
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: appdb
+  DB_USER: appuser
+  DB_PASSWORD: apppass
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+  REQUESTS_TOPIC: compute.requests
+  REPLIES_TOPIC: compute.replies
+  # Telemetry is wired but OFF in the no-telemetry demo. Later demos flip
+  # OTEL_SDK_DISABLED to false and/or launch under opentelemetry-instrument.
+  OTEL_SDK_DISABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local,service.version=dev
+
+services:
+  # ─── Observability: the all-in-one Grafana LGTM image ───────────────────
+  # Bundles Grafana + Tempo + Mimir/Prometheus + Loki AND an OpenTelemetry
+  # Collector. We mount our own Collector config so sampling/batching is taught
+  # as a first-class, swappable thing (see the sampling chapter).
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.8.1
+    container_name: lgtm
+    ports:
+      - "3000:3000"   # Grafana UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "9090:9090"   # Mimir / Prometheus
+      - "3100:3100"   # Loki
+      - "3200:3200"   # Tempo
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      # Swap this file for otelcol/config.tail-sampling.yaml in the sampling demo.
+      - ./otelcol/config.yaml:/otel-lgtm/otelcol-config.yaml:Z
+      - ./grafana/datasources.yaml:/otel-lgtm/grafana/conf/provisioning/datasources/datasources.yaml:Z
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+  # ─── Postgres ───────────────────────────────────────────────────────────
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:Z
+      - ./db/init:/docker-entrypoint-initdb.d:Z
+    mem_limit: 1g
+    command: ["postgres", "-c", "log_statement=all", "-c", "shared_buffers=128MB"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  # ─── Kafka (single KRaft broker) ────────────────────────────────────────
+  kafka:
+    image: docker.io/apache/kafka:3.8.0
+    container_name: kafka
+    ports:
+      - "9092:9092"   # host clients
+      - "9094:9094"   # compose-internal clients
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,DOCKER://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,DOCKER://kafka:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: "3"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
+      KAFKA_MIN_INSYNC_REPLICAS: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-data:/var/lib/kafka/data:Z
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  kafka-ui:
+    image: docker.io/provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9094
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ─── FastAPI service: produces the request, consumes the reply ──────────
+  api:
+    build:
+      context: ../app
+      dockerfile: Containerfile
+    image: localhost/otel-demo-app:latest
+    container_name: api
+    command: ["run-api"]
+    depends_on:
+      lgtm: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    ports:
+      - "8080:8080"
+    environment:
+      <<: *app_env
+      OTEL_SERVICE_NAME: compute-api
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+
+  # ─── Consumer service: does the work, reads/writes Postgres, replies ────
+  worker:
+    build:
+      context: ../app
+      dockerfile: Containerfile
+    image: localhost/otel-demo-app:latest
+    container_name: worker
+    command: ["run-worker"]
+    depends_on:
+      lgtm: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      <<: *app_env
+      OTEL_SERVICE_NAME: compute-worker
+
+volumes:
+  postgres-data:
+  kafka-data:
+
+networks:
+  default:
+    name: observability

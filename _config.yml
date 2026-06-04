@@ -1,0 +1,93 @@
+# ────────────────────────────────────────────────────────────────────────────
+# Observability for Python with OpenTelemetry and the Grafana LGTM Stack
+# Site identity, GitHub link target, and baseurl. Build configuration below
+# generally doesn't need changes.
+# ────────────────────────────────────────────────────────────────────────────
+
+# Site identity
+title: "Observability for Python with OpenTelemetry & the Grafana LGTM Stack"
+description: "A demo-driven talk: instrument a FastAPI / Kafka / Postgres service with OpenTelemetry and correlate traces, metrics, and logs in a self-hosted Grafana stack."
+brand_emoji: "🔭"   # appears next to the title in the header
+
+# GitHub identity for header link and example sourcing
+# TODO(robert): set these to the real GitHub owner/repo before publishing.
+github_username: "patterncatalyst"
+github_repo: "observability-python-otel-lgtm"
+
+# baseurl
+# - On a project Pages site (USERNAME.github.io/observability-python-otel-lgtm): "/observability-python-otel-lgtm"
+# - On a user/org Pages site (USERNAME.github.io):                              ""
+# - For local dev, override at runtime: bundle exec jekyll serve --baseurl ""
+baseurl: "/observability-python-otel-lgtm"
+
+# url is set at deploy time; leave blank for GitHub Pages auto-detection
+url: ""
+
+license: "Apache 2.0"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Build configuration — generally don't change these.
+# ────────────────────────────────────────────────────────────────────────────
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+permalink: pretty
+
+# Collections — _docs and _plans are not Jekyll defaults; this enables them.
+collections:
+  docs:
+    output: true
+    permalink: /docs/:name/
+  plans:
+    output: true
+    permalink: /plans/:name/
+  example_pages:
+    output: true
+    permalink: /examples/:name/
+  parts:
+    output: true
+    permalink: /parts/:name/
+
+# Default front-matter — saves typing `layout: tutorial` on every doc.
+defaults:
+  - scope:
+      path: ""
+      type: docs
+    values:
+      layout: tutorial
+      sectionid: docs
+  - scope:
+      path: ""
+      type: plans
+    values:
+      layout: plan
+  - scope:
+      path: ""
+      type: example_pages
+    values:
+      layout: tutorial
+      sectionid: examples
+  - scope:
+      path: ""
+      type: parts
+    values:
+      layout: part_index
+      sectionid: docs
+
+# Files/dirs Jekyll should not process or include in the built site.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - node_modules/
+  - examples/   # runnable demo drivers, not site content
+  - stack/      # the shared compose stack + app source
+  - deck/       # the pptx builder
+  - scripts/
+  - README.md
+  - LICENSE
+  - PRD.md
+  - CONTRIBUTING.md

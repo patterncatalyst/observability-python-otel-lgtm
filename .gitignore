@@ -1,0 +1,43 @@
+# ── Jekyll ──────────────────────────────────────────────────────────────────
+_site/
+.jekyll-cache/
+.jekyll-metadata
+vendor/
+.bundle/
+
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Poetry installs into the project; the lock file IS committed, the venv is not.
+.python-version
+
+# ── Node (slide deck tooling) ────────────────────────────────────────────────
+node_modules/
+deck/node_modules/
+
+# ── Build / QA artifacts ─────────────────────────────────────────────────────
+qa/
+*.pdf
+deck/*.pptx
+deck/png/*.tmp.png
+
+# ── Container / local state ──────────────────────────────────────────────────
+# Postgres data volumes, Kafka logs, etc. when bind-mounted for local runs.
+stack/.data/
+*.log
+
+# ── Editor / OS noise ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
