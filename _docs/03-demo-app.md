@@ -89,8 +89,8 @@ give us a repeatable success path and a repeatable failure path on demand.
 **The contracts are shared protos.** The gRPC message and service definitions
 live at the repo top level under `proto/shop/...` (inventory, payment, and a
 common `Money` type), compiled to Python stubs by `scripts/gen-protos.sh`. One
-copy of the truth, compiled into each service that needs it — the same place the
-reference architecture keeps them.
+copy of the truth, compiled into each service that needs it, so the message
+shapes can never drift between caller and callee.
 
 **The consumers and the read side.** Shipping and notification
 (`services/shipping`, `services/notification`) are `aiokafka` consumers that

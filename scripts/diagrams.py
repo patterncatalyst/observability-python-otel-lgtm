@@ -185,10 +185,118 @@ def fig_11_correlation_graph():
                 "anchor": "middle", "size": 12}])
 
 
+# ── Fig 6.1 — Logs stamped with the trace: the ids are the join key ──────────
+def fig_06_log_correlation():
+    g.emit("fig-06-log-correlation", 860, 320,
+        nodes=[
+            {"x": 30,  "y": 120, "w": 180, "h": 80, "style": "accent",
+             "lines": ["request span", "trace_id = abc…"]},
+            {"x": 290, "y": 120, "w": 230, "h": 80, "style": "box",
+             "lines": ["log line (JSON)", "{ msg, trace_id: abc… }"]},
+            {"x": 600, "y": 66,  "w": 150, "h": 66, "style": "box", "lines": ["Loki", "logs, by trace_id"]},
+            {"x": 600, "y": 210, "w": 150, "h": 66, "style": "box", "lines": ["Tempo", "traces, by trace_id"]},
+        ],
+        edges=[
+            {"x1": 210, "y1": 160, "x2": 290, "y2": 160, "label": "stamps the ids", "amber": True, "ly": -10},
+            {"x1": 520, "y1": 145, "x2": 600, "y2": 105, "label": "stdout → Collector"},
+            {"x1": 675, "y1": 132, "x2": 675, "y2": 210, "label": "trace_id", "amber": True, "bidir": True},
+        ],
+        notes=[{"x": 430, "y": 34,
+                "text": "Stamp each log with the active trace_id; the line in Loki and the trace in Tempo then point at each other.",
+                "anchor": "middle", "size": 12}])
+
+
+# ── Fig 5.1 — Metrics and exemplars: one request, two shapes ─────────────────
+def fig_05_metrics_exemplars():
+    g.emit("fig-05-metrics-exemplars", 920, 340,
+        nodes=[
+            {"x": 40,  "y": 135, "w": 160, "h": 90, "style": "accent",
+             "lines": ["incoming requests", "POST /orders"]},
+            {"x": 300, "y": 70,  "w": 220, "h": 72, "style": "box",
+             "lines": ["one span per request", "per-event"]},
+            {"x": 600, "y": 74,  "w": 150, "h": 64, "style": "box", "lines": ["Tempo", "traces"]},
+            {"x": 300, "y": 210, "w": 220, "h": 84, "style": "box",
+             "lines": ["duration histogram", "periodic aggregate · p50·p95·p99"]},
+            {"x": 600, "y": 218, "w": 150, "h": 64, "style": "box", "lines": ["Mimir", "rate · errors · p99"]},
+        ],
+        edges=[
+            {"x1": 200, "y1": 160, "x2": 300, "y2": 106, "label": "record a span"},
+            {"x1": 200, "y1": 200, "x2": 300, "y2": 252, "label": "+ record duration", "ly": 10},
+            {"x1": 520, "y1": 106, "x2": 600, "y2": 106},
+            {"x1": 520, "y1": 252, "x2": 600, "y2": 250},
+            {"x1": 410, "y1": 210, "x2": 410, "y2": 142, "label": "exemplar → trace_id", "amber": True, "lx": 70},
+        ],
+        notes=[{"x": 460, "y": 32,
+                "text": "One request, two shapes: a per-event span and a periodic aggregate. The exemplar links a histogram bucket back to a real trace.",
+                "anchor": "middle", "size": 12}])
+
+
+# ── Fig 1.1 — The running stack: what `podman compose up` brings up ──────────
+def fig_01_running_stack():
+    g.emit("fig-01-running-stack", 960, 390,
+        bands=[
+            {"x": 20,  "y": 50, "w": 920, "h": 320, "label": "compose network", "fill": "#f7f7f7"},
+            {"x": 540, "y": 80, "w": 400, "h": 240, "label": "grafana/otel-lgtm · one image", "fill": "#fafafa"},
+        ],
+        nodes=[
+            {"x": 50,  "y": 105, "w": 200, "h": 95, "style": "accent",
+             "lines": ["six services", "REST · gRPC · GraphQL · Kafka", "host :8080 / :8081"]},
+            {"x": 300, "y": 215, "w": 150, "h": 55, "style": "box", "lines": ["Kafka", "order.placed"]},
+            {"x": 300, "y": 295, "w": 150, "h": 55, "style": "box", "lines": ["Postgres", "appdb"]},
+            {"x": 565, "y": 110, "w": 160, "h": 70, "style": "sub",
+             "lines": ["OTel Collector", "OTLP/HTTP in :4318"]},
+            {"x": 770, "y": 110, "w": 150, "h": 70, "style": "box",
+             "lines": ["Tempo · Mimir · Loki", "traces · metrics · logs"]},
+            {"x": 650, "y": 240, "w": 200, "h": 60, "style": "ink",
+             "lines": ["Grafana", ":3000 — one UI for all three"]},
+        ],
+        edges=[
+            {"x1": 250, "y1": 145, "x2": 565, "y2": 145, "label": "OTLP/HTTP :4318", "amber": True},
+            {"x1": 160, "y1": 200, "x2": 310, "y2": 230, "label": "events"},
+            {"x1": 135, "y1": 200, "x2": 305, "y2": 305, "label": "SQL", "dashed": True, "lx": -10},
+            {"x1": 725, "y1": 145, "x2": 770, "y2": 145, "amber": True},
+            {"x1": 845, "y1": 180, "x2": 800, "y2": 240, "label": "query"},
+        ],
+        notes=[{"x": 480, "y": 32,
+                "text": "What `podman compose up` brings up: the services, Postgres and Kafka, and the bundled otel-lgtm backend (Collector → stores → Grafana).",
+                "anchor": "middle", "size": 12}])
+
+
+# ── Fig 0.1 — The arc: three parts, one trace_id, ending in one correlated view ─
+def fig_00_arc():
+    g.emit("fig-00-arc", 940, 300,
+        bands=[
+            {"x": 20, "y": 210, "w": 900, "h": 70,
+             "label": "one trace_id — end to end through every hop", "fill": "#fdecec"},
+        ],
+        nodes=[
+            {"x": 40,  "y": 80, "w": 220, "h": 95, "style": "accent",
+             "lines": ["Foundations", "the stack + the services", "§0–§3"]},
+            {"x": 330, "y": 80, "w": 300, "h": 95, "style": "box",
+             "lines": ["The three signals", "traces · metrics · logs", "→ one correlated view  ·  §4–§9"]},
+            {"x": 700, "y": 80, "w": 220, "h": 95, "style": "box",
+             "lines": ["The pipeline", "sampling · profiling", "keep it affordable"]},
+        ],
+        edges=[
+            {"x1": 260, "y1": 127, "x2": 330, "y2": 127, "amber": True},
+            {"x1": 630, "y1": 127, "x2": 700, "y2": 127, "amber": True},
+            {"x1": 150, "y1": 175, "x2": 150, "y2": 210, "dashed": True},
+            {"x1": 480, "y1": 175, "x2": 480, "y2": 210, "dashed": True},
+            {"x1": 810, "y1": 175, "x2": 810, "y2": 210, "dashed": True},
+        ],
+        notes=[{"x": 470, "y": 45,
+                "text": "Build it in three parts; the same trace_id threads through all of them, ending in one correlated view.",
+                "anchor": "middle", "size": 12}])
+
+
 FIGURES = [
+    fig_00_arc,
+    fig_01_running_stack,
     fig_02_otel_data_path,
     fig_03_service_topology,
     fig_04_instrumentation_layers,
+    fig_05_metrics_exemplars,
+    fig_06_log_correlation,
     fig_07_context_propagation,
     fig_09_sampling_location,
     fig_11_correlation_graph,

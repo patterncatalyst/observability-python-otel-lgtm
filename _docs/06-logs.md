@@ -17,6 +17,8 @@ this chapter.
 The code is in `examples/04-logs/`; the logging setup is
 `services/common/obs/logging.py`.
 
+{% raw %}{% include excalidraw.html file="fig-06-log-correlation" alt="A request span's trace_id is stamped onto a JSON log line by a logging filter; the line goes to stdout and on to Loki, and Loki and Tempo link to each other by the shared trace_id." caption="Figure 6.1 — Stamp the trace_id onto every log, and Loki and Tempo point at each other" %}{% endraw %}
+
 ## Why structured, and why the ids
 
 Two decisions make logs correlatable. First, **structure**: emit JSON, not free

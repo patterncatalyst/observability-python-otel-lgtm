@@ -148,4 +148,4 @@ slow point on a graph back to the exact trace behind it.
 A real run must confirm one trace spans order -> inventory/payment gRPC ->
 Postgres in Tempo, the resource carries the right `service.name` per service, and
 that with propagation off the consumer spans form separate traces. Exact OTel
-instrumentation package versions are pinned in the reconciliation plan, unverified.*
+instrumentation package versions are pinned but unverified against a 3.14 runtime.*

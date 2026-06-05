@@ -38,12 +38,14 @@ that to your `PATH` if it isn't already.
   <p>The talk's narrative targets Python 3.14. Whether the OpenTelemetry
   auto-instrumentation wheels are published for a brand-new CPython is a thing to
   confirm against upstream right before delivery — it is the single biggest
-  readiness risk here. The app's dependency range stays open to 3.12+ so the
-  demo installs on whatever supported CPython the current Red Hat UBI image
-  ships while that 3.14 image tag is confirmed.</p>
+  readiness risk here. Each service's dependency range stays open to 3.12+ so the
+  images install on whatever supported CPython the current Red Hat UBI base
+  ships while that 3.14 tag is confirmed.</p>
 </div>
 
 ## The stack, before any telemetry
+
+{% raw %}{% include excalidraw.html file="fig-01-running-stack" alt="The compose network: six services send OTLP/HTTP on 4318 to the bundled otel-lgtm Collector, which feeds Tempo, Mimir, and Loki behind one Grafana UI; the services also talk to Kafka and Postgres." caption="Figure 1.1 — One podman compose up: the services, Kafka and Postgres, and the bundled otel-lgtm backend" %}{% endraw %}
 
 The backend is one image — `grafana/otel-lgtm` — that bundles Grafana, Tempo,
 Mimir (Prometheus-compatible), Loki, *and* an OpenTelemetry Collector. Bundling

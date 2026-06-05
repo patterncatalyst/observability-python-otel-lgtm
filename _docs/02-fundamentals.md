@@ -35,6 +35,15 @@ A **log** answers *what exactly happened at this instant*. A log line is a
 timestamped record, ideally structured. Logs carry the detail a metric averages
 away and a span does not have room for.
 
+Their costs differ as much as their jobs, which is why the pipeline later treats
+them differently. Metrics are cheap enough to keep for everything, all the time —
+a fixed set of numbers per series regardless of traffic. Traces are richer and
+grow with every request, so at volume they are usually sampled rather than kept
+whole. Logs are the most voluminous of the three and the easiest to let sprawl,
+so they earn their keep only where the detail is worth the storage. Holding that
+asymmetry in mind now makes the sampling decisions in the last part read as
+economics rather than arbitrary knobs.
+
 The trap is treating them as three products. The metric tells you error rate
 just spiked; the trace shows you which hop is failing; the log line tells you the
 exact exception. That hand-off only works if all three carry the same

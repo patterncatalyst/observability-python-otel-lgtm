@@ -82,7 +82,7 @@ def extract_context(headers):
 The returned context is not active yet — it is a value describing "the trace this
 message came from." Activating it is the consumer's job.
 
-**Consume — make the processing span a child.** In `services/shipping/worker.py`
+**Consume — make the processing span a child.** In `services/shipping/shipping/worker.py`
 the loop extracts the context and passes it straight to `start_as_current_span`:
 
 ```python
@@ -139,9 +139,9 @@ end-to-end picture that was impossible in Chapter 3.
 - `start_as_current_span` is also how you give any custom work — GraphQL
   resolvers, batch steps — a visible span structure.
 
-This completes the three signals. Next, the talk moves to *the pipeline*: the
-Collector in the path, and the sampling decisions that keep all of this
-affordable at volume.
+Next, *Auto, custom, and hybrid* steps back from the mechanics to name the
+choice you have now exercised both sides of — what to let the libraries trace for
+you, where a hand-placed span earns its keep, and what each approach costs.
 
 ---
 

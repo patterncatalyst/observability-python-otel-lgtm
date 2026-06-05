@@ -6,8 +6,15 @@ description: "What this talk covers, the running example, and the two ways to de
 duration: 3 minutes
 ---
 
-This is a hands-on talk about making a realistic Python system observable. The
-running example is a small set of services — order, inventory, payment, shipping,
+Every distributed system eventually puts the same three questions to whoever is
+on call: where did the time go, which service actually failed, and what did it log
+at the moment it did. Across service boundaries, logs alone answer none of them
+well — and that gap, not a shortage of log lines, is what this talk closes. You
+take a realistic set of Python services and make one request's whole journey
+legible: a single trace you can read end to end, with metrics and logs that link
+back to it.
+
+The running example is a small set of services — order, inventory, payment, shipping,
 notification, review — where one `POST /orders` fans out across REST at the edge, gRPC
 between services, an asynchronous Kafka event, Postgres underneath, and a GraphQL
 read path. Over the talk that system grows traces, metrics, and logs from a
@@ -20,6 +27,8 @@ cloud on the path — the whole backend is the open-source Grafana **LGTM** stac
 **M**imir for metrics.
 
 ## The arc
+
+{% raw %}{% include excalidraw.html file="fig-00-arc" alt="A three-part roadmap: Foundations, then the three signals converging into one correlated view, then the pipeline; a single trace_id threads through all three." caption="Figure 0.1 — The arc: three parts, one trace_id, ending in one correlated view" %}{% endraw %}
 
 | Part | Theme | Chapters |
 |---|---|---|
