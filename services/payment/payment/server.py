@@ -17,7 +17,7 @@ import uuid
 import grpc
 
 from obs import otel, db, logging as obslog
-from mesh.payment.v1 import payment_pb2, payment_pb2_grpc
+from shop.payment.v1 import payment_pb2, payment_pb2_grpc
 
 log = logging.getLogger("payment")
 

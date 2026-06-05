@@ -1,6 +1,6 @@
 # tools/
 
-Ways to exercise the running mesh so there is something to look at in Grafana.
+Ways to exercise the running services so there is something to look at in Grafana.
 Bring the stack up first (`cd stack && podman compose up --build`).
 
 ## curl — single requests
@@ -18,7 +18,7 @@ plus the shipping and notification consumer spans once the event is processed.
 
 ## Postman — a collection of the external edges
 
-Import `postman/observability-mesh.postman_collection.json`. "Place order (REST)"
+Import `postman/observability.postman_collection.json`. "Place order (REST)"
 stashes the returned `order_id` in a collection variable, so "Get order" and the
 GraphQL requests work without copy-paste. "Place order — payment declined" pushes
 the amount over the payment ceiling to generate an error trace on demand.

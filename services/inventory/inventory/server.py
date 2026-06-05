@@ -14,7 +14,7 @@ import uuid
 import grpc
 
 from obs import otel, db, logging as obslog
-from mesh.inventory.v1 import inventory_pb2, inventory_pb2_grpc
+from shop.inventory.v1 import inventory_pb2, inventory_pb2_grpc
 
 log = logging.getLogger("inventory")
 

@@ -12,17 +12,26 @@ that when telemetry starts flowing, you already know where it lands.
 
 ## What you need installed
 
-The demos target **Python 3.14** with **Poetry** for dependency management, and
-they run on **Podman** with `podman compose` — not Docker. Podman is rootless by
-default and is the engine on the platforms this talk targets (current Fedora and
-current macOS via the Podman machine). On macOS, give the Podman machine at
-least 6 GB of memory; the full stack uses roughly 3.5 GB across all its services.
+Almost nothing has to be installed by hand. The backend — Grafana, Tempo, Mimir,
+Loki, the Collector, Postgres, and Kafka — arrives as container images the first
+time you run `podman compose up`, and the gRPC stubs are compiled inside each
+service image, so there is no `protoc` toolchain to set up. What you do need is a
+container engine and a way to drive traffic at the services.
 
-Optional, only for the load and test tooling under `tools/`: [`hey`](https://github.com/rakyll/hey)
-to drive the REST edge, [`ghz`](https://ghz.sh) to drive the gRPC services, and
-Postman if you prefer a GUI to the curl scripts. The gRPC protos are compiled
-into each service image during the build (via `grpcio-tools`), so you do not need
-a protoc toolchain installed to run the demos.
+| Tool | What it's for | Fedora 44 | macOS (Homebrew) |
+|---|---|---|---|
+| **Podman + compose** | the container engine the whole stack runs on (rootless; not Docker) | `sudo dnf install podman podman-compose` | `brew install podman podman-compose`, then `podman machine init --memory 6144 && podman machine start` |
+| **git** | clone the repo | `sudo dnf install git` | preinstalled, or `brew install git` |
+| **curl** | drive the REST and GraphQL edges from a shell | preinstalled | preinstalled |
+| **Python 3.14 + Poetry** | *optional* — only to run or develop a service outside its container | `sudo dnf install python3.14 pipx && pipx install poetry` | `brew install python@3.14 pipx && pipx install poetry` |
+| **hey** | *optional* — HTTP load on the REST edge (the metrics chapter) | `sudo dnf install golang && go install github.com/rakyll/hey@latest` | `brew install hey` |
+| **ghz** | *optional* — load straight at a gRPC service | `sudo dnf install golang && go install github.com/bojand/ghz/cmd/ghz@latest` | `brew install ghz` |
+| **Postman** | *optional* — a GUI alternative to the curl scripts | `flatpak install flathub com.getpostman.Postman` | `brew install --cask postman` |
+
+On macOS the engine is the Podman machine, a small Linux VM; the `--memory 6144`
+above gives it the ~3.5 GB the full stack needs with headroom. On Fedora, Podman
+runs natively and rootless. The `go install` binaries land in `~/go/bin`, so add
+that to your `PATH` if it isn't already.
 
 <div class="callout callout--warn">
   <p class="callout__title">Python 3.14 and auto-instrumentation</p>

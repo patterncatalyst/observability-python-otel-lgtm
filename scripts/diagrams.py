@@ -55,7 +55,7 @@ def fig_03_service_topology():
     g.emit("fig-03-service-topology", 960, 440,
         bands=[
             {"x": 170, "y": 50, "w": 770, "h": 240, "label": "compose network", "fill": "#f7f7f7"},
-            {"x": 170, "y": 330, "w": 770, "h": 80, "label": "Postgres · meshdb", "fill": "#fdecec"},
+            {"x": 170, "y": 330, "w": 770, "h": 80, "label": "Postgres · appdb", "fill": "#fdecec"},
         ],
         nodes=[
             {"x": 20,  "y": 150, "w": 130, "h": 70, "style": "sub", "lines": ["Client", "curl / Postman"]},

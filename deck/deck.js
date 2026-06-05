@@ -17,7 +17,7 @@ const {
 // Built decks live in the repo under presentations/ (one .pptx per talk/cut).
 // Run from inside deck/ (cd deck && node deck.js) so ../presentations resolves
 // to the repo root, and ./assets + ./png are found by deck-helpers.js.
-const OUT = "../presentations/otel-lgtm-python-r1.0.pptx";
+const OUT = "../presentations/otel-lgtm-python-r1.1.pptx";
 const REV = "r01.0";
 
 const pres = newDeck();
@@ -45,7 +45,7 @@ function divider(code, title, subtitle, notes) {
     { text: "service observable", options: {} },
   ], {
     x: 5.95, y: 2.30, w: 7.05, h: 2.10, fontFace: FONT.title, fontSize: 46, bold: true, color: COLOR.ink, align: "left", valign: "top" });
-  s.addText("OpenTelemetry and the self-hosted Grafana LGTM stack — traces, metrics, and logs from one SDK, correlated across an async Kafka round trip.", {
+  s.addText("OpenTelemetry and the self-hosted Grafana LGTM stack — traces, metrics, and logs from one SDK, correlated across one request as it crosses REST, gRPC, Kafka, and Postgres.", {
     x: 6.00, y: 4.50, w: 6.80, h: 1.30,
     fontFace: FONT.body, fontSize: 16, italic: true, color: COLOR.caption, align: "left", valign: "top" });
   s.addText(REV, { x: 11.85, y: 5.95, w: 0.95, h: 0.30, fontFace: FONT.mono, fontSize: 11, color: COLOR.caption, align: "right", valign: "middle" });
@@ -59,20 +59,20 @@ function divider(code, title, subtitle, notes) {
 
 // ── Section 00 divider ──────────────────────────────────────────────────────
 divider("00", "Foundations", "The stack, the signals, and the app we will instrument.",
-  "This first part lays the groundwork: what the talk covers and how it is delivered, the tools and the running backend, the conceptual model of the three signals, and a close read of the demo application. No instrumentation yet — we earn that by first understanding the system we are about to make transparent.");
+  "This first part lays the groundwork: what the talk covers and how it is delivered, the tools and the running backend, the conceptual model of the three signals, and a close read of the example services. No instrumentation yet — we earn that by first understanding the system we are about to make transparent.");
 
 // ── 0. What this talk is ─────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · OUTLINE", "One small service, made fully observable");
+  addContentTitle(s, "FOUNDATIONS · OUTLINE", "A few small services, made fully observable");
   addBullets(s, [
-    "The running example is small but complete: a FastAPI service that takes a request, sends it across Kafka to a separate worker, which reads and writes Postgres, and replies across Kafka — one async round trip.",
-    "Over the talk that service grows traces, metrics, and logs from a single OpenTelemetry SDK, all correlated in Grafana, with a Collector in the path making the sampling and routing decisions.",
+    "The running example is a small set of services — order, inventory, payment, shipping, notification, review — where one POST /orders fans out across REST at the edge, gRPC between services, an asynchronous Kafka event, Postgres underneath, and a GraphQL read path.",
+    "Over the talk that system grows traces, metrics, and logs from a single OpenTelemetry SDK, all correlated in Grafana, with a Collector in the path making the sampling and routing decisions.",
     "The backend is the open-source Grafana LGTM stack — Loki for logs, Grafana to view, Tempo for traces, Mimir for metrics — running locally under Podman. No paid accounts, no managed cloud on the path.",
   ], { fontSize: 17 });
   addNotes(s,
-    "Frame the whole arc here. The service is deliberately a realistic shape — a request that does not finish in one process. " +
-    "That async round trip is the reason the demo earns its keep: context has to survive a message broker, not just an in-process call, which is exactly where correlation usually breaks. " +
+    "Frame the whole arc here. The system is deliberately a realistic shape — one request that crosses several services and protocols, not a single process. " +
+    "That fan-out is the reason the demo earns its keep: context has to survive gRPC calls and a Kafka message, not just an in-process call, which is exactly where correlation usually breaks. " +
     "LGTM is the mnemonic: Loki, Grafana, Tempo, Mimir. Stress that everything is self-hosted and vendor-neutral — mapping it to a managed service later is the audience's to do, not ours.");
 }
 
@@ -81,15 +81,15 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
   const s = S();
   addContentTitle(s, "FOUNDATIONS · OUTLINE", "The arc, in three parts");
   addStatusTable(s, [
-    { code: "Foundations",       name: "the stack, the signals, the app", purpose: "Outline · Prerequisites · Fundamentals · The demo app" },
-    { code: "The three signals", name: "traces, metrics, logs — and correlation", purpose: "Auto-instrumentation · Metrics · Logs · Custom spans across Kafka" },
-    { code: "The pipeline",      name: "the Collector and the payoff", purpose: "The hybrid approach · Sampling · Profiling · The correlated view" },
+    { code: "Foundations",       name: "the stack, the signals, the services", purpose: "Outline · Prerequisites · Fundamentals · The services" },
+    { code: "The three signals", name: "traces, metrics, logs — and correlation", purpose: "Auto-instr · Metrics · Logs · Custom spans across Kafka · Auto/custom/hybrid · Reading it in Grafana" },
+    { code: "The pipeline",      name: "the Collector and what to keep", purpose: "Sampling · Profiling" },
   ], { colW: [2.55, 4.20, 5.34], rowH: 0.95 });
   addCaption(s, "Foundations is this part; the three signals and the pipeline are the two halves that follow.");
   addNotes(s,
     "Walk the three parts left to right. Part one (today's foundation iteration) is conceptual and structural. " +
     "Part two adds each signal in turn and ends on carrying trace context across the Kafka hop — the hard, interesting bit. " +
-    "Part three moves the sampling and routing decisions into the Collector and lands on the correlated view, where one click pivots metric → trace → log. " +
+    "Part three moves the costly sampling and routing decisions into the Collector and adds continuous profiling. " +
     "Refer to parts by name, never by slide number.");
 }
 
@@ -109,7 +109,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
     ]);
   addNotes(s,
     "Pick the profile out loud and tell the room which one they are in. The core path is demo-driven and keeps moving; the workshop pauses to run everything live. " +
-    "The right column manages expectations: assume working knowledge of the four technologies. If the audience is shaky on Kafka, flag the request/reply pattern as the one thing to watch and move on. " +
+    "The right column manages expectations: assume working knowledge of the four technologies. If the audience is shaky on Kafka, flag the producer/consumer hop as the one thing to watch and move on. " +
     "The duration numbers are targets to confirm in a timed rehearsal — they are marked unverified in the materials.");
 }
 
@@ -221,23 +221,23 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
     "Plant the flag now: the single trace_id flowing through every hop is the foundation everything else is built on, and the Kafka hop is where it is easiest to lose. We will fix it explicitly later with a propagator that writes context into message headers.");
 }
 
-// ── 3. Demo mesh — diagram fig-03 ────────────────────────────────────────────
+// ── 3. Example services — diagram fig-03 ───────────────────────────────────
 {
   const s = S();
-  addDiagramSlide(s, "FOUNDATIONS · THE DEMO MESH",
+  addDiagramSlide(s, "FOUNDATIONS · THE EXAMPLE SERVICES",
     "One order, five protocols, six services",
     "fig-03-service-topology",
     "Figure 3.1 — POST /orders fans out: gRPC to inventory + payment, Postgres, Kafka order.placed → shipping + notification; review serves GraphQL.");
   addNotes(s,
     "Same SVG as Figure 3.1 in the tutorial. Walk the fan-out with your finger: a client POSTs to the order service; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification each consume that event; review answers a GraphQL read. " +
-    "The objects mirror the data-mesh reference architecture — order, inventory, payment, shipping, notification, review — but we run it all in Podman compose, not Kubernetes, because this is an OpenTelemetry talk. " +
+    "The cast is a small set of familiar e-commerce services — order, inventory, payment, shipping, notification, review — run on Podman compose, not Kubernetes, because this is an OpenTelemetry talk. The names are borrowed from a separate data-mesh reference project; here they are just realistic domains to instrument. " +
     "The teaching point: five protocols means five places a trace can continue or break. Auto-instrumentation will carry it across REST and gRPC for free; the Kafka hop is the one we wire by hand later.");
 }
 
 // ── 3b. The one request ──────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "The one request the whole talk follows");
+  addContentTitle(s, "FOUNDATIONS · THE EXAMPLE SERVICES", "The one request the whole talk follows");
   addBullets(s, [
     "POST /orders on the order service is the action everything hangs off. In sequence: reserve stock (gRPC → inventory), authorize payment (gRPC → payment), persist the order (Postgres), publish order.placed (Kafka), return the confirmed order.",
     "Two services react asynchronously: shipping consumes the event and writes a shipment; notification consumes the same event and sends a message. A separate review service exposes a GraphQL read API over orders and reviews.",
@@ -252,7 +252,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
 // ── 3c. The shared obs library ───────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "One shared library carries all the telemetry");
+  addContentTitle(s, "FOUNDATIONS · THE EXAMPLE SERVICES", "One shared library carries all the telemetry");
   addBullets(s, [
     "Every service depends on a small package, obs (services/common/), so the instrumentation story is identical everywhere and lives in one reviewable place — application code stays clean.",
     "obs.otel.setup(name) builds the resource, the OTLP/HTTP exporters for all three signals, the W3C propagator, and turns on auto-instrumentation for FastAPI, gRPC, and asyncpg.",
@@ -266,7 +266,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
 // ── 3d. order handler (code) ─────────────────────────────────────────────────
 {
   const s = S();
-  addCodeSlide(s, "FOUNDATIONS · THE DEMO MESH", "The order handler — the spine", "python · FastAPI",
+  addCodeSlide(s, "FOUNDATIONS · THE EXAMPLE SERVICES", "The order handler — the spine", "python · FastAPI",
     [
       "@app.post(\"/orders\")",
       "async def create_order(body: CreateOrder) -> dict:",
@@ -296,7 +296,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
 // ── 3e. inventory Reserve (code) ─────────────────────────────────────────────
 {
   const s = S();
-  addCodeSlide(s, "FOUNDATIONS · THE DEMO MESH", "A gRPC service — inventory.Reserve", "python · grpc.aio + asyncpg",
+  addCodeSlide(s, "FOUNDATIONS · THE EXAMPLE SERVICES", "A gRPC service — inventory.Reserve", "python · grpc.aio + asyncpg",
     [
       "class InventoryServicer(inventory_pb2_grpc.InventoryServiceServicer):",
       "    async def Reserve(self, request, context):",
@@ -313,7 +313,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
       "        return inventory_pb2.ReserveResponse(reserved=True,",
       "            reservation_id=reservation_id, remaining=remaining)",
     ],
-    "Contracts are shared protos at proto/mesh/…; the gRPC server instrumentation continues the order's trace.",
+    "Contracts are shared protos at proto/shop/…; the gRPC server instrumentation continues the order's trace.",
     { fontSize: 10 });
   addNotes(s,
     "Two things to land. First, the single conditional UPDATE … WHERE on_hand >= qty RETURNING on_hand both checks and decrements stock atomically — no read-then-write race — and returns NULL when there isn't enough, which is how Reserve signals failure. A reservation row keyed by order_id makes a retry idempotent. " +
@@ -323,22 +323,22 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
 // ── 3f. The fragile bits ─────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "The fragile bits, named not hidden");
+  addContentTitle(s, "FOUNDATIONS · THE EXAMPLE SERVICES", "The fragile bits, named not hidden");
   addBullets(s, [
-    "Every domain shares one Postgres database (meshdb) for laptop simplicity; a real data mesh would isolate a store per domain. The observability story — a Postgres span per service under one trace — is identical either way.",
+    "Every domain shares one Postgres database (appdb) for laptop simplicity; a production system might isolate a store per domain. The observability story — a Postgres span per service under one trace — is identical either way.",
     "The payment ceiling and the catalog unit price are hardcoded so demos are deterministic: a fixed amount authorizes, a large quantity declines, on demand.",
     "Kafka auto-creates the order.placed topic; production would create topics explicitly with chosen partition counts. None of these change the spans or metrics — they are scope cuts, stated out loud.",
   ], { fontSize: 16 });
   addNotes(s,
-    "Naming the simplifications buys credibility and heads off the 'but what about…' questions. The one most likely to be challenged is the shared database — be ready to say that per-domain stores are the data-mesh ideal but co-locating them changes nothing about the telemetry, which is what this talk is about. Keep the focus on observability.");
+    "Naming the simplifications buys credibility and heads off the 'but what about…' questions. The one most likely to be challenged is the shared database — be ready to say that per-domain stores are the production ideal but co-locating them changes nothing about the telemetry, which is what this talk is about. Keep the focus on observability.");
 }
 
 // ── 3g. Run it — it's opaque ─────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "It works — and it is completely opaque");
+  addContentTitle(s, "FOUNDATIONS · THE EXAMPLE SERVICES", "It works — and it is completely opaque");
   addBullets(s, [
-    "cd examples/01-mesh-no-telemetry && ./demo.sh — brings the whole stack up in Podman with telemetry disabled and places one order.",
+    "cd examples/01-no-telemetry && ./demo.sh — brings the whole stack up in Podman with telemetry disabled and places one order.",
     "Expect a confirmed order in the response, a shipment row, and a notification log — proof the request travelled the full chain across REST, gRPC, Kafka, and Postgres.",
     "Then open Grafana and look for it. There is nothing there. Six services just collaborated to fulfil that order and you cannot see any of it — exactly the opacity the rest of the talk removes.",
   ], { fontSize: 16 });
@@ -492,18 +492,46 @@ divider("THE THREE SIGNALS", "Traces, metrics, logs — and the thread that ties
     "Close the part by generalising: start_as_current_span is not a Kafka tool, it is THE tool for making invisible work visible — the Kafka consumers and the GraphQL resolvers are two faces of the same move. End on the side-by-side: Demo 2's trace stopped at the broker; Demo 5's runs all the way through shipping and notification. Same code, one env var, the whole picture.");
 }
 
+// ── 8. Auto, custom, hybrid — the cost ───────────────────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE THREE SIGNALS · HYBRID", "Auto, custom, hybrid — and what each costs");
+  addBullets(s, [
+    "Auto-instrumentation is breadth for free: every request, RPC, and query becomes a span with no code. The cost is volume you pay to export, store, and read, and blind spots — it sees nothing no instrumented library owns (the Kafka hop, a GraphQL resolver, the business meaning).",
+    "Custom spans are depth where you decide: your names, your attributes (order_id, decline reason), wrapping work no instrumentor sees. The cost is code you maintain — so you spend it on the message boundary and the resolver, not on HTTP.",
+    "Hybrid — auto everywhere, custom in the gaps — is the production default, and it is what this repo already runs. Two rules keep it cheap: instrument any one boundary once (two near-identical spans = double-instrumentation), and keep high-cardinality ids on spans, never on metric labels.",
+  ], { fontSize: 15 });
+  addCaption(s, "Demo 6 shows both layers in one trace; compare it to Demo 2 with the custom layer off.");
+  addNotes(s,
+    "This is the slide the senior engineers in the room are waiting for: the honest cost/benefit. Auto is not free — it is volume and it is library-shaped. Custom is not noble — it is maintenance you ration. The hybrid is the only realistic answer, and the two failure modes worth naming out loud are double-instrumenting one boundary (the duplicate-span smell) and shoving an unbounded id like order_id into a metric label, which is how an observability bill becomes a horror story. " +
+    "Identifiers belong on spans, where one-per-request is already the shape; metrics get bounded labels — route, method, status.");
+}
+
+// ── 9. The correlated view — diagram fig-11 ──────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE THREE SIGNALS · CORRELATED VIEW",
+    "Read one request across all three signals",
+    "fig-11-correlation-graph",
+    "Figure 9.1 — One trace_id links a trace in Tempo to its logs in Loki and its metrics in Mimir; the pivots are one click.");
+  addNotes(s,
+    "This is the payoff slide — open Grafana and actually use the correlation. Walk the four moves live if you can. (1) In Tempo, a trace read top-down IS the distributed business flow — the path across services with a duration on each hop, and on a failed order the error sits on the Authorize span with the decline reason as an attribute. " +
+    "(2) From a span, 'Logs for this span' jumps by trace_id to exactly that service's lines in Loki — no grep, no window-guessing. (3) From a p99 bump in Mimir, an exemplar dot opens the slow trace behind it. (4) The gap between a gRPC client span and its server span is wire + serialization time, with message sizes on the spans — the serde cost read straight off the trace. " +
+    "All four pivot on one trace_id flowing through every hop. That movement between signals is the whole point; it is what a wall of disconnected logs can never give you.");
+}
+
 // ── Closing / roadmap ────────────────────────────────────────────────────────
 {
   const s = S();
   addContentTitle(s, "THE THREE SIGNALS", "Where this goes next");
   addBullets(s, [
-    "You now have the full correlation story on the demo mesh: traces across REST and gRPC for free, metrics with exemplars, logs stamped with the trace_id, and custom spans that carry the trace across Kafka and shape the GraphQL read path.",
-    "Next part — the pipeline: move sampling and routing into the Collector, add continuous profiling, and land on the correlated view where one click pivots metric → trace → log.",
-    "Iteration r1.0 ships Sections 0–7, the six-service mesh, the shared protos and obs library, and Demos 1–5. The remaining pipeline demos land in r2.0; see the iteration plan in the repo.",
-  ], { fontSize: 16 });
+    "You now have the full correlation story across the services: traces across REST and gRPC for free, metrics with exemplars, logs stamped with the trace_id, custom spans that carry the trace across Kafka, the honest auto/custom/hybrid trade-off, and a Grafana walkthrough that pivots trace → logs → metrics on one click.",
+    "Next part — the pipeline: move the costly decisions into the Collector. Where sampling happens, what it costs to keep telemetry at volume, and continuous profiling.",
+    "Iteration r1.1 ships Sections 0–9, the six example services, the shared protos and obs library, and Demos 1–7. The Collector-side pipeline demos land in r2.0; see the iteration plan in the repo.",
+  ], { fontSize: 15 });
   addNotes(s,
-    "Re-walk the arc so the audience knows what they hold and what's coming. The foundation gave them the mesh and the model; this part gave them the three correlated signals; the payoff — the one-click correlated view — is the final part. " +
-    "Be honest about iteration state: r1.0 is authored against the target versions but not yet run end-to-end here, so it ships marked unverified, and a live rehearsal against the real stack is the next milestone. Point people at the repo: the tutorial mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
+    "Re-walk the arc so the audience knows what they hold and what's coming. The foundation gave them the services and the model; this part gave them the three correlated signals, the cost of getting them, and the one-click view that ties them together; the pipeline part is about keeping all of it affordable at volume. " +
+    "Be honest about iteration state: r1.1 is authored against the target versions but not yet run end-to-end here, so it ships marked unverified, and a live rehearsal against the real stack is the next milestone. Point people at the repo: the tutorial mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
 }
 
 pres.writeFile({ fileName: OUT })

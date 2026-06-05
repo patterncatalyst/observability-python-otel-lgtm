@@ -1,4 +1,4 @@
-"""OpenTelemetry bootstrap shared by every service in the mesh.
+"""OpenTelemetry bootstrap shared by every service.
 
 One call to :func:`setup` wires the SDK the same way everywhere: a shared
 resource (who am I), OTLP/HTTP exporters for all three signals pointed at the

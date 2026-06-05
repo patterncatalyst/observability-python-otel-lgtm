@@ -1,4 +1,4 @@
-"""obs — shared OpenTelemetry bootstrap and mesh plumbing for every service.
+"""obs — shared OpenTelemetry bootstrap and plumbing for every service.
 
 Typical service startup:
 

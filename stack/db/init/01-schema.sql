@@ -1,5 +1,5 @@
--- Schema for the observability demo mesh. For laptop simplicity every domain
--- shares one database (meshdb); a production data mesh would isolate each
+-- Schema for the observability demo services. For laptop simplicity every domain
+-- shares one database (appdb); a production system would isolate each
 -- domain's store. The observability story is identical either way — each service
 -- still issues its own auto-traced Postgres spans under the request's trace.
 

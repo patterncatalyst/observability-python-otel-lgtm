@@ -19,9 +19,9 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 command -v ghz >/dev/null || { echo "ghz not found — see https://ghz.sh/docs/install"; exit 1; }
 
 ghz --insecure \
-  --proto "$REPO_ROOT/proto/mesh/inventory/v1/inventory.proto" \
+  --proto "$REPO_ROOT/proto/shop/inventory/v1/inventory.proto" \
   --import-paths "$REPO_ROOT/proto" \
-  --call mesh.inventory.v1.InventoryService.CheckStock \
+  --call shop.inventory.v1.InventoryService.CheckStock \
   -d '{"sku":"WIDGET-001","quantity":1}' \
   -n "$N" -c "$C" \
   "$INVENTORY_ADDR"

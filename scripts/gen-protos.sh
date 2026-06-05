@@ -22,9 +22,9 @@ python -m grpc_tools.protoc \
   --python_out="$OUT" \
   --grpc_python_out="$OUT" \
   --pyi_out="$OUT" \
-  proto/mesh/common/v1/common.proto \
-  proto/mesh/inventory/v1/inventory.proto \
-  proto/mesh/payment/v1/payment.proto
+  proto/shop/common/v1/common.proto \
+  proto/shop/inventory/v1/inventory.proto \
+  proto/shop/payment/v1/payment.proto
 
 # Make every generated package directory importable.
 find "$OUT" -type d -exec sh -c 'touch "$1/__init__.py"' _ {} \;

@@ -1,11 +1,11 @@
 # proto/
 
-Shared Protocol Buffers contracts for the mesh's **gRPC** hops, kept at the repo
-top level (as in the data-mesh reference architecture) so every service compiles
+Shared Protocol Buffers contracts for the services' **gRPC** hops, kept at the
+repo top level so every service compiles
 against one copy of the truth rather than vendoring its own.
 
 ```
-proto/mesh/
+proto/shop/
   common/v1/common.proto       # shared types (Money)
   inventory/v1/inventory.proto # InventoryService: CheckStock, Reserve
   payment/v1/payment.proto     # PaymentService: Authorize

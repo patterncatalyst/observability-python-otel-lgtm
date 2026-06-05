@@ -35,19 +35,28 @@ title: Home
   <div class="container">
     <h2 class="section-heading">What this tutorial is</h2>
     <p class="section-sub">
-      A chapter-based, hands-on path to making a realistic Python service mesh
-      observable with <a href="https://opentelemetry.io/">OpenTelemetry</a>. A
-      single order request fans out across an external <strong>REST</strong> API,
-      service-to-service <strong>gRPC</strong> and <strong>GraphQL</strong>,
-      asynchronous <strong>Kafka</strong> events, and <strong>Postgres</strong> —
-      and you make the whole journey show up as one correlated trace, with metrics
-      and logs that link back to it, in a self-hosted Grafana stack. The domain
-      objects mirror the
-      <a href="https://github.com/patterncatalyst/datamesh-reference-arch-python">data-mesh reference architecture</a>
-      (order, inventory, payment, shipping, notification, review). It assumes
-      working knowledge of Python and these technologies — it is not a tutorial on
-      any of them. Everything runs locally in Podman; all images are UBI-based.
-      This is an OpenTelemetry talk, not a Kubernetes one.
+      If you have run a distributed system, you know the failure mode: a request
+      crosses half a dozen services, and when it is slow or quietly wrong, the
+      logs you have are too sparse to explain it, too noisy to search, or costly
+      enough that you hesitate to add more. The thing that would actually help —
+      the request's full path, in order, across every service, with the time spent
+      in each hop and the cost of serializing data between them — is the thing you
+      almost never have.
+    </p>
+    <p class="section-sub">
+      This tutorial builds it. A single order request fans out across
+      <strong>REST</strong>, <strong>gRPC</strong>, <strong>GraphQL</strong>,
+      <strong>Kafka</strong>, and <strong>Postgres</strong>, and chapter by chapter
+      you instrument it with <a href="https://opentelemetry.io/">OpenTelemetry</a>
+      until that one request is a single trace you can read end to end — with the
+      metrics that show it in aggregate and the logs that explain it correlated to
+      the same trace, all in a Grafana stack you run yourself. It stays honest
+      about the trade-offs throughout: what auto-instrumentation gives you for
+      free, where you pay for it in overhead or noise, and when one hand-placed
+      span is worth more than a dozen automatic ones. The six services (order,
+      inventory, payment, shipping, notification, review) are a realistic stand-in
+      for systems you already operate; the subject is the observability, and what
+      it costs to get it.
     </p>
 
     {%- comment -%}

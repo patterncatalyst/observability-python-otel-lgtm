@@ -1,20 +1,20 @@
 # 🔭 Observability for Python with OpenTelemetry & the Grafana LGTM Stack
 
-A demo-driven talk and companion tutorial. You instrument a realistic Python
-service mesh — six domain services (**order, inventory, payment, shipping,
-notification, review**) where one `POST /orders` fans out across **REST**, **gRPC**,
-**GraphQL**, **Kafka**, and **Postgres** — with **OpenTelemetry**, then ship
-traces, metrics, and logs into a self-hosted **Grafana LGTM** stack (**L**oki,
-**G**rafana, **T**empo, **M**imir) and correlate all three signals across one
-request. The domain objects mirror the
-[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python).
+A demo-driven talk and companion tutorial. You instrument a realistic set of
+Python services — **order, inventory, payment, shipping, notification, review** —
+where one `POST /orders` fans out across **REST**, **gRPC**, **GraphQL**,
+**Kafka**, and **Postgres**, with **OpenTelemetry**, then ship traces, metrics,
+and logs into a self-hosted **Grafana LGTM** stack (**L**oki, **G**rafana,
+**T**empo, **M**imir) and correlate all three signals across one request. The
+services use familiar e-commerce domain names purely as a convenient, realistic
+shape to instrument — the point is the observability, not the domain.
 
 Everything runs locally with a single `podman compose up`. No SaaS, no
 API keys, no cloud account, and no Kubernetes — just the OSS stack on your
 laptop. This is an OpenTelemetry talk, not a Kubernetes one.
 
-> **Status: three-signals iteration (r1.0).** Sections 0–7, the six-service
-> mesh, the shared protos and `obs` library, the stack, and Demos 1–5 are
+> **Status: three-signals iteration (r1.1).** Sections 0–9, the six
+> example services, the shared protos and `obs` library, the stack, and Demos 1–5 are
 > authored. The pipeline deep-dives (§8–§11, Demos 6–9) land in r2.0 — see
 > [`_plans/iteration-plan.md`](_plans/iteration-plan.md). Every demo currently
 > ships marked **`unverified`**: authored against the target versions but not
@@ -32,10 +32,10 @@ This repository is four deliverables that share one source of truth:
 | [`_docs/`](_docs/) | The **tutorial site** chapters (Jekyll). Numbered, part-grouped, served as a static site. |
 | [`deck/`](deck/) | The **slide deck tooling** — `deck.js` source + the `pptxgenjs` design system, shared assets, and diagram PNGs. |
 | [`presentations/`](presentations/) | The **built decks** (`.pptx`), one per talk/cut — committed deliverables built from `deck/`. |
-| [`proto/`](proto/) | The **shared gRPC contracts** (`proto/mesh/...`), at the top level so every service compiles one copy of the truth. |
+| [`proto/`](proto/) | The **shared gRPC contracts** (`proto/shop/...`), at the top level so every service compiles one copy of the truth. |
 | [`services/`](services/) | The **six domain services** plus the shared `obs` library (`services/common/`) and one parameterized `Containerfile`. |
 | [`stack/`](stack/) | The **observability stack** — `compose.yaml` for Grafana LGTM, the OTel Collector, Postgres, and Kafka, plus the six services. |
-| [`tools/`](tools/) | **curl** scripts, a **Postman** collection, and **hey**/**ghz** load drivers to exercise the running mesh. |
+| [`tools/`](tools/) | **curl** scripts, a **Postman** collection, and **hey**/**ghz** load drivers to exercise the running services. |
 | [`examples/`](examples/) | One thin **runnable demo** per chapter; each drives the shared stack. |
 | [`assets/diagrams/`](assets/diagrams/) | The **shared diagrams** — `.svg` + `.excalidraw`, generated from `scripts/diagrams.py`. |
 
@@ -48,7 +48,7 @@ One spec → identical figures in the book and the slides.
 
 ## Quick start
 
-### Run the stack and the demo mesh
+### Run the stack and the services
 
 ```bash
 # from the repo root
@@ -87,7 +87,7 @@ Each chapter has a matching driver under `examples/NN-*/` with `demo.sh` and a
 ```bash
 cd deck
 export NODE_PATH=$(npm root -g)
-node deck.js                  # → ../presentations/otel-lgtm-python-r1.0.pptx
+node deck.js                  # → ../presentations/otel-lgtm-python-r1.1.pptx
 ```
 
 Built decks land in [`presentations/`](presentations/) and are committed. See
@@ -110,7 +110,7 @@ bash scripts/render_pngs.sh       # → deck/png/*.png  (needs LibreOffice)
 
 ---
 
-## The demo mesh
+## The example services
 
 One `POST /orders` fans out across five protocols and six services, which is what
 makes it a good observability teaching example — trace context has to survive

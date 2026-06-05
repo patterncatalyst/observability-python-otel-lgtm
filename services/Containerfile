@@ -1,8 +1,8 @@
-# Shared Containerfile for every mesh service. Build context is the repo ROOT so
+# Shared Containerfile for every service. Build context is the repo ROOT so
 # the image can see the top-level proto/ and the shared services/common/ library.
 # Select the service with --build-arg SERVICE=<name>; compose does this per service.
 #
-#   podman build -f services/Containerfile --build-arg SERVICE=order -t mesh/order .
+#   podman build -f services/Containerfile --build-arg SERVICE=order -t otel-demo/order .
 #
 # UBI Python base; rootless final stage. Pin PYTHON_BASE to the confirmed 3.14
 # tag once it's verified — the range in each pyproject allows 3.12+ meanwhile.
@@ -28,9 +28,9 @@ COPY services/${SERVICE}/ services/${SERVICE}/
 # services that don't import them.
 RUN python -m grpc_tools.protoc -I proto \
         --python_out=generated --grpc_python_out=generated --pyi_out=generated \
-        proto/mesh/common/v1/common.proto \
-        proto/mesh/inventory/v1/inventory.proto \
-        proto/mesh/payment/v1/payment.proto \
+        proto/shop/common/v1/common.proto \
+        proto/shop/inventory/v1/inventory.proto \
+        proto/shop/payment/v1/payment.proto \
  && find generated -type d -exec sh -c 'touch "$0/__init__.py"' {} \;
 
 # Install the service plus its path dependency on ../common into the system env.

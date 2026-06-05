@@ -12,15 +12,14 @@ demo and version claim is **unverified** until a real `podman compose up` + test
 run confirms it on each target platform (current Fedora; current macOS with a
 fresh Podman machine). This page is the record of intended vs. delivered.
 
-## Architecture pivot (r1.0)
+## Architecture pivot (r1.x)
 
-r1.0 replaced the single FastAPI+worker app with a six-service data-mesh-style
-application (order, inventory, payment, shipping, notification, review) spanning
-REST, gRPC, GraphQL, Kafka, and Postgres, mirroring the
-[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python)
-but on Podman compose rather than Kubernetes. Decisions taken, all unverified:
+The r1.x line replaced the single FastAPI+worker app with a set of six example services
+(order, inventory, payment, shipping, notification, review) spanning REST, gRPC,
+GraphQL, Kafka, and Postgres on Podman compose. The service names are borrowed
+from a separate data-mesh reference project; this is not a data mesh. Decisions taken, all unverified:
 
-- **One database (`meshdb`), all domains.** A laptop simplification; production
+- **One database (`appdb`), all domains.** A laptop simplification; production
   would isolate a store per domain. Stated in `stack/db/init/01-schema.sql`.
 - **Shared `obs` library as a Poetry path dependency** (`obs = {path="../common"}`),
   installed alongside each service in the shared `services/Containerfile`.
@@ -33,15 +32,15 @@ but on Podman compose rather than Kubernetes. Decisions taken, all unverified:
 
 | # | Chapter | Status | What a real run must confirm |
 |---|---|---|---|
-| 1 | The demo mesh | unverified | Cold `podman compose up --build`; all six service images build on the UBI Python base; protos compile into each image; `POST /orders` → `confirmed`; a shipment row + notification log appear. |
+| 1 | The example services | unverified | Cold `podman compose up --build`; all six service images build on the UBI Python base; protos compile into each image; `POST /orders` → `confirmed`; a shipment row + notification log appear. |
 | 2 | Auto-instrumentation | unverified | With `PROPAGATE_KAFKA_CONTEXT=false`, one trace spans order → inventory/payment gRPC → Postgres in Tempo with no app code; consumers form separate traces. On Python 3.14 or a documented fallback. |
 | 3 | Metrics | unverified | RED metrics for the order service reach Mimir; the error line tracks payment-declined load; exemplars resolve to real traces. |
 | 4 | Logs | unverified | Order logs are JSON with a populated `trace_id` during a request; value matches the trace; Loki derived field links to Tempo. |
 | 5 | Custom spans across Kafka | unverified | With propagation on, shipping + notification spans share the order's trace and parent to its publish span; GraphQL resolver spans nest under the request. aiokafka header round-trip of `traceparent` is the highest risk. |
-| 6 | Hybrid | not started | Auto + custom together; the duplicate-span / suppression gotcha reproduces and the fix removes it. |
-| 7 | Sampling | not started | Head vs. tail Collector configs both run; tail keeps errors + slow + `/orders`; memory stays bounded under `hey`. |
-| 8 | Profiling | not started | Continuous profiling backend pinned; a flame graph renders; span↔profile link works. |
-| 9 | Correlated view | not started | One request followed trace → logs → metrics via exemplars in a single Grafana view. |
+| 6 | Auto vs custom vs hybrid | unverified | Fully-instrumented trace shows both auto and custom spans in one tree; no operation is double-instrumented; metric pipeline carries no unbounded labels. |
+| 7 | Correlated view (Grafana) | unverified | Span→logs link resolves by `trace_id`; metric exemplars open a trace; gRPC client/server span pair exposes serde cost + message-size attributes; one `order_id` agrees across trace, logs, and Postgres. |
+| 8 | Sampling | not started | Head vs. tail Collector configs both run; tail keeps errors + slow + `/orders`; memory stays bounded under `hey`. |
+| 9 | Profiling | not started | Continuous profiling backend pinned; a flame graph renders; span↔profile link works. |
 
 ## Versions to pin and re-verify against upstream before delivery
 

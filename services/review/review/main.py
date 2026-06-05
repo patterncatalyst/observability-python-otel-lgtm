@@ -1,4 +1,4 @@
-"""Review service — the GraphQL read edge of the mesh.
+"""Review service — the GraphQL read edge.
 
 GraphQL is the external read API: a client asks for an order and its reviews in
 one round trip, and the resolvers fan out to Postgres. The HTTP layer is

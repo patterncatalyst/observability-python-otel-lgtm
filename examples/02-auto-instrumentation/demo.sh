@@ -6,7 +6,7 @@ set -euo pipefail
 STACK="$(git rev-parse --show-toplevel)/stack"
 export OTEL_SDK_DISABLED=false
 export PROPAGATE_KAFKA_CONTEXT=false
-echo "Bringing up the mesh with telemetry ENABLED (Kafka propagation off)..."
+echo "Bringing up the services with telemetry ENABLED (Kafka propagation off)..."
 ( cd "$STACK" && podman compose up --build -d )
 for i in $(seq 1 60); do curl -sf http://localhost:8080/health >/dev/null 2>&1 && break; sleep 2; done
 

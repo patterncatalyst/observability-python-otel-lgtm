@@ -1,5 +1,5 @@
 ---
-title: "The demo mesh and how it's built"
+title: "The services and how they're built"
 order: 3
 part: "Foundations"
 description: "Six small services — order, inventory, payment, shipping, notification, review — that turn one order into a journey across REST, gRPC, GraphQL, Kafka, and Postgres."
@@ -13,14 +13,15 @@ crosses synchronous gRPC calls, an asynchronous message boundary, and a database
 before the customer is told anything — the kind of fan-out where, without
 tracing, "why was that order slow?" has no good answer.
 
-The objects mirror the
-[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python):
-**order, inventory, payment, shipping, notification, review**. We keep its domain
-shape and its protocol mix, but swap its Kubernetes/Helm/Istio deployment for
-plain Podman compose — this is an OpenTelemetry talk, not a Kubernetes one.
+The cast is a small set of familiar e-commerce services —
+**order, inventory, payment, shipping, notification, review** — chosen only
+because their interactions are the kind you actually run in production: a
+synchronous request that pulls in other services, an asynchronous event that
+fans out to more, and a database under each. They run as plain services on
+Podman compose; the subject is the telemetry, not the domain.
 
 The code is under `services/`, the shared protos under `proto/`, and the runnable
-baseline in `examples/01-mesh-no-telemetry/`. The run script there builds the
+baseline in `examples/01-no-telemetry/`. The run script there builds the
 stack and places an order; its `README.md` covers what it does.
 
 {% raw %}{% include excalidraw.html file="fig-03-service-topology" alt="A client POSTs to the order service over REST; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification consume the event; the review service serves a GraphQL read API over Postgres." caption="Figure 3.1 — One order, five protocols, six services" %}{% endraw %}
@@ -86,7 +87,7 @@ declines anything above it — a trivial, deterministic rule whose only job is t
 give us a repeatable success path and a repeatable failure path on demand.
 
 **The contracts are shared protos.** The gRPC message and service definitions
-live at the repo top level under `proto/mesh/...` (inventory, payment, and a
+live at the repo top level under `proto/shop/...` (inventory, payment, and a
 common `Money` type), compiled to Python stubs by `scripts/gen-protos.sh`. One
 copy of the truth, compiled into each service that needs it — the same place the
 reference architecture keeps them.
@@ -98,8 +99,8 @@ loop over `order.placed`; today they simply act on the event. The review service
 reviews from Postgres.
 
 **Document, don't hide, the fragile bits.** For laptop simplicity every domain
-shares one Postgres database (`meshdb`) rather than a store per domain as a real
-data mesh would; the seam is honest and noted in `stack/db/init/01-schema.sql`.
+shares one Postgres database (`appdb`) rather than a store per domain; the seam
+is honest and noted in `stack/db/init/01-schema.sql`.
 The payment ceiling and the catalog unit price are hardcoded so demos are
 deterministic. Kafka auto-creates the `order.placed` topic. None of these change
 the observability story — the spans and metrics are identical — but they would
@@ -108,7 +109,7 @@ all change in production.
 ## Build, run, observe
 
 ```bash
-cd examples/01-mesh-no-telemetry && ./demo.sh
+cd examples/01-no-telemetry && ./demo.sh
 ```
 
 It brings the whole stack up in Podman with telemetry disabled and places one
@@ -133,4 +134,4 @@ synchronous hops for free — and shows exactly where that free ride ends.
 A real run must confirm all six service images build on the chosen UBI Python
 base, the protos compile into each image, an order returns `confirmed`, and a
 shipment row and notification log appear after the event. See
-`examples/01-mesh-no-telemetry/README.md`.*
+`examples/01-no-telemetry/README.md`.*

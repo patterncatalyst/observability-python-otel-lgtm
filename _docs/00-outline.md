@@ -7,9 +7,8 @@ duration: 3 minutes
 ---
 
 This is a hands-on talk about making a realistic Python system observable. The
-running example is a small service mesh — six domain services (order, inventory,
-payment, shipping, notification, review) drawn from the data-mesh reference
-architecture — where one `POST /orders` fans out across REST at the edge, gRPC
+running example is a small set of services — order, inventory, payment, shipping,
+notification, review — where one `POST /orders` fans out across REST at the edge, gRPC
 between services, an asynchronous Kafka event, Postgres underneath, and a GraphQL
 read path. Over the talk that system grows traces, metrics, and logs from a
 single OpenTelemetry SDK, all correlated in a self-hosted Grafana stack, with an
@@ -24,9 +23,9 @@ cloud on the path — the whole backend is the open-source Grafana **LGTM** stac
 
 | Part | Theme | Chapters |
 |---|---|---|
-| **Foundations** | the stack, the signals, the app | Outline, Prerequisites, Fundamentals, The demo app |
-| **The three signals** | traces, metrics, logs — and correlation | Auto-instrumentation, Metrics, Logs, Custom spans across Kafka |
-| **The pipeline** | the Collector and the payoff | The hybrid approach, Sampling, Profiling, The correlated view |
+| **Foundations** | the stack, the signals, the services | Outline, Prerequisites, Fundamentals, The services |
+| **The three signals** | traces, metrics, logs — and correlation | Auto-instrumentation, Metrics, Logs, Custom spans across Kafka, Auto vs custom vs hybrid, Reading it in Grafana |
+| **The pipeline** | the Collector and what to keep | Sampling, Profiling |
 
 ## Two ways to deliver it
 

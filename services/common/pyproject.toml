@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "obs"
 version = "0.1.0"
-description = "Shared OpenTelemetry bootstrap and mesh plumbing for the observability demo services."
+description = "Shared OpenTelemetry bootstrap and plumbing for the observability demo services."
 authors = ["Robert Sedor"]
 license = "Apache-2.0"
 packages = [{ include = "obs" }]

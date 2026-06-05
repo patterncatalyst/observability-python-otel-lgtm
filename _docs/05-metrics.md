@@ -9,7 +9,7 @@ duration: 14 minutes
 Traces answer "what happened in this one request?" Metrics answer "what is
 happening across all of them?" — and you need both, because you cannot keep a
 trace for every request forever, but you can keep cheap aggregate counters and
-histograms indefinitely. This chapter turns on metrics for the mesh and, more
+histograms indefinitely. This chapter turns on metrics for the services and, more
 importantly, shows how a metric links back to a trace through **exemplars**, so
 the aggregate view and the single-request view are one click apart.
 

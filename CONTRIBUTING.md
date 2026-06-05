@@ -2,7 +2,7 @@
 
 Thanks for your interest. This repo is a teaching artifact — a talk plus a
 companion tutorial — so contributions are weighed against whether they keep the
-four deliverables (site, deck, demo app, stack) coherent and in sync.
+four deliverables (site, deck, services, stack) coherent and in sync.
 
 ## Ground rules
 

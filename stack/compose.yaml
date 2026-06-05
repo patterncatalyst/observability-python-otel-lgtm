@@ -14,7 +14,7 @@
 #   inventory gRPC : inventory:50051
 #   payment gRPC   : payment:50052
 #   Kafka          : kafka:9094
-#   Postgres       : postgres:5432  (db: meshdb)
+#   Postgres       : postgres:5432  (db: appdb)
 #   Telemetry      : http://lgtm:4318  (OTLP/HTTP)
 #
 # ~3.5 GB across all services on a fresh start; give the Podman machine >= 6 GB.
@@ -23,7 +23,7 @@
 # OTEL_SDK_DISABLED defaults to false (instrumented); the no-telemetry baseline
 # demo overrides it by exporting OTEL_SDK_DISABLED=true before `compose up`.
 x-service-env: &service_env
-  DATABASE_URL: postgres://appuser:apppass@postgres:5432/meshdb
+  DATABASE_URL: postgres://appuser:apppass@postgres:5432/appdb
   KAFKA_BOOTSTRAP: kafka:9094
   OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
   OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
@@ -69,7 +69,7 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: meshdb
+      POSTGRES_DB: appdb
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: apppass
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
@@ -79,7 +79,7 @@ services:
     mem_limit: 1g
     command: ["postgres", "-c", "log_statement=all", "-c", "shared_buffers=128MB"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U appuser -d meshdb"]
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -136,7 +136,7 @@ services:
   # --- Domain services ----------------------------------------------------
   inventory:
     build: { <<: *service_build, args: { SERVICE: inventory } }
-    image: localhost/mesh-inventory:latest
+    image: localhost/otel-demo-inventory:latest
     container_name: inventory
     environment:
       <<: *service_env
@@ -147,7 +147,7 @@ services:
 
   payment:
     build: { <<: *service_build, args: { SERVICE: payment } }
-    image: localhost/mesh-payment:latest
+    image: localhost/otel-demo-payment:latest
     container_name: payment
     environment:
       <<: *service_env
@@ -158,7 +158,7 @@ services:
 
   order:
     build: { <<: *service_build, args: { SERVICE: order } }
-    image: localhost/mesh-order:latest
+    image: localhost/otel-demo-order:latest
     container_name: order
     ports:
       - "8080:8080"
@@ -182,7 +182,7 @@ services:
 
   shipping:
     build: { <<: *service_build, args: { SERVICE: shipping } }
-    image: localhost/mesh-shipping:latest
+    image: localhost/otel-demo-shipping:latest
     container_name: shipping
     environment:
       <<: *service_env
@@ -194,7 +194,7 @@ services:
 
   notification:
     build: { <<: *service_build, args: { SERVICE: notification } }
-    image: localhost/mesh-notification:latest
+    image: localhost/otel-demo-notification:latest
     container_name: notification
     environment:
       <<: *service_env
@@ -205,7 +205,7 @@ services:
 
   review:
     build: { <<: *service_build, args: { SERVICE: review } }
-    image: localhost/mesh-review:latest
+    image: localhost/otel-demo-review:latest
     container_name: review
     ports:
       - "8081:8081"

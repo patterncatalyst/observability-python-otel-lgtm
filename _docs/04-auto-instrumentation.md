@@ -6,7 +6,7 @@ description: "One setup() call turns on FastAPI, gRPC, and asyncpg instrumentati
 duration: 16 minutes
 ---
 
-In the last chapter the mesh ran with telemetry off and Grafana was empty. Here
+In the last chapter the services ran with telemetry off and Grafana was empty. Here
 we change exactly one thing — switch the SDK on — and a single `POST /orders`
 turns into one connected trace across the order service, both gRPC dependencies,
 and every Postgres query, without adding a line of tracing to any handler. The

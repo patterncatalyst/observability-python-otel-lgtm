@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "order"
 version = "0.1.0"
-description = "Order service — external REST front door that fans out across the mesh."
+description = "Order service — external REST front door that fans out across the services."
 authors = ["Robert Sedor"]
 packages = [{ include = "order" }]
 

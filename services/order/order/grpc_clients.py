@@ -8,9 +8,9 @@ import os
 
 import grpc
 
-from mesh.inventory.v1 import inventory_pb2, inventory_pb2_grpc
-from mesh.payment.v1 import payment_pb2, payment_pb2_grpc
-from mesh.common.v1 import common_pb2
+from shop.inventory.v1 import inventory_pb2, inventory_pb2_grpc
+from shop.payment.v1 import payment_pb2, payment_pb2_grpc
+from shop.common.v1 import common_pb2
 
 
 class Clients:

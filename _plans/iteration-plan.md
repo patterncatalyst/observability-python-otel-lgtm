@@ -24,19 +24,23 @@ authority; this page tracks the order of build.
 - [x] Slide deck through §3, embedding the shared figures.
 - [x] Plans: this roadmap and the reconciliation plan.
 
-## r1.0 — The three signals (this iteration)
+## r1.1 — The three signals (this iteration)
 
-**Architecture pivot.** r1.0 replaced the single FastAPI+worker app with a
-six-service data-mesh-style application (order, inventory, payment, shipping,
+*Supersedes the earlier r1.0 working cuts (never committed): r1.1 folds in §8–§9,
+Demos 6–7, the professional-audience rewrite, the prerequisites install table, and
+unpublishing the internal plans from the site.*
+
+**Architecture pivot.** r1.x replaced the single FastAPI+worker app with a
+set of six example services (order, inventory, payment, shipping,
 notification, review) so the trace can be examined across REST, gRPC, GraphQL,
-Kafka, and Postgres in one request. The objects mirror the
-[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python);
-the Kubernetes/Helm/Istio layer is deliberately swapped for Podman compose — this
-is an OpenTelemetry talk. The r0.1 `app/` and its example were removed.
+Kafka, and Postgres in one request. The service names are borrowed from a separate
+[data-mesh reference project](https://github.com/patterncatalyst/datamesh-reference-arch-python),
+but this is plainly a set of services on Podman compose — an OpenTelemetry talk,
+not a data mesh and not Kubernetes. The r0.1 `app/` and its example were removed.
 
 - [x] Scrubbed all eBPF/Rust/Aya/Fedora-KVM/bpftool/bcc template language from
   the site scaffold (index, includes, layout favicon, CSS, diagram engine).
-- [x] Shared protos at the repo top level (`proto/mesh/...`) for the gRPC hops,
+- [x] Shared protos at the repo top level (`proto/shop/...`) for the gRPC hops,
   compiled by `scripts/gen-protos.sh`.
 - [x] Shared `obs` library (`services/common/`): OTel bootstrap, Kafka context
   propagation, asyncpg pool, trace-stamped JSON logging.
@@ -45,19 +49,24 @@ is an OpenTelemetry talk. The r0.1 `app/` and its example were removed.
   + Kafka-UI; multi-domain schema; sampling config retargeted to `/orders`.
 - [x] Tooling: curl scripts, a Postman collection, `hey` (REST) and `ghz` (gRPC)
   load drivers.
-- [x] §3 rewritten for the mesh; §4 Auto-instrumentation, §5 Metrics, §6 Logs,
-  §7 Custom spans across Kafka written under "The three signals."
-- [x] Demos 1–5 as runnable examples (no-telemetry baseline; auto-instrumentation
-  with the Kafka break; metrics; logs; spans across Kafka with the fix).
-- [x] New `fig-03-service-topology`; deck extended through §7; built as
-  `presentations/otel-lgtm-python-r1.0.pptx`.
+- [x] §3 rewritten for the example services; §4 Auto-instrumentation, §5 Metrics,
+  §6 Logs, §7 Custom spans across Kafka, §8 Auto vs custom vs hybrid, and §9
+  Reading it in Grafana (the correlated view) written under "The three signals."
+- [x] Demos 1–7 as runnable examples (no-telemetry baseline; auto-instrumentation
+  with the Kafka break; metrics; logs; spans across Kafka with the fix; the
+  hybrid; the correlated-view walkthrough).
+- [x] Prerequisites chapter carries a Fedora 44 + macOS install table; the PRD and
+  plans are unpublished from the site (internal tracking only).
+- [x] New `fig-03-service-topology`; deck built as
+  `presentations/otel-lgtm-python-r1.1.pptx`.
 
 ## r2.0 — The pipeline
 
-- [ ] §8 The hybrid approach + Demo 6 (duplicate-span / suppression gotcha). Uses Fig 4.1.
-- [ ] §9 The Collector & sampling + Demo 7 (head vs. tail; swap Collector config). Uses Fig 9.1.
-- [ ] §10 Continuous profiling + Demo 8 (optional; flame graph, span↔profile).
-- [ ] §11 The correlated view + Demo 9 (one trace → logs → metrics via exemplars). Uses Fig 11.1.
+The hybrid approach and the correlated view moved forward into the r1.1 "three
+signals" part (§8 and §9). The pipeline part is now the Collector-side concerns.
+
+- [ ] §10 The Collector & sampling + Demo 8 (head vs. tail; swap Collector config; what it costs to keep). Uses Fig 9.1.
+- [ ] §11 Continuous profiling + Demo 9 (optional; flame graph, span↔profile).
 - [ ] §12 Anti-patterns & production notes; §N Where to go next.
 - [ ] Deck sections for §8–§N.
 

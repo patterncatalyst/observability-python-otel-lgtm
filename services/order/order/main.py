@@ -1,7 +1,7 @@
 """Order service — the external REST front door.
 
 POST /orders is the single user action the whole talk traces. One call fans out
-across every hop in the mesh:
+across every hop in the system:
 
     HTTP (here) → gRPC Reserve (inventory) → gRPC Authorize (payment)
                 → Postgres INSERT (here) → Kafka publish order.placed
