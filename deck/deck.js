@@ -58,7 +58,7 @@ function divider(code, title, subtitle, notes) {
 }
 
 // ── Section 00 divider ──────────────────────────────────────────────────────
-divider("00", "Foundations", "The stack, the signals, and the app we will instrument.",
+divider("00", "Foundations", "The stack, the signals, and the services we will instrument.",
   "This first part lays the groundwork: what the talk covers and how it is delivered, the tools and the running backend, the conceptual model of the three signals, and a close read of the example services. No instrumentation yet — we earn that by first understanding the system we are about to make transparent.");
 
 // ── 0. What this talk is ─────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
   const s = S();
   addContentTitle(s, "FOUNDATIONS · PREREQUISITES", "What you need installed");
   addBullets(s, [
-    "Python 3.14 with Poetry for dependency management. The app's range stays open to 3.12+ so it installs on whatever supported CPython the current Red Hat UBI image ships while the 3.14 tag is confirmed.",
+    "Python 3.14 with Poetry for dependency management. Each service's range stays open to 3.12+ so the images build on whatever supported CPython the current Red Hat UBI base ships while the 3.14 tag is confirmed.",
     "Podman with podman compose — not Docker. Podman is rootless by default and is the engine on the platforms this talk targets (current Fedora, current macOS via the Podman machine).",
     "On macOS, give the Podman machine at least 4 GB; the full stack uses roughly 3 GB across all its services.",
   ], { fontSize: 17 });
@@ -126,6 +126,18 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
     "The single biggest readiness risk in this whole talk lives on this slide: whether the OpenTelemetry auto-instrumentation wheels are published for a brand-new CPython 3.14. " +
     "Confirm that against upstream right before delivery. The dependency range is deliberately open to 3.12+ precisely so the demo still installs if 3.14 wheels are not ready yet. " +
     "Podman-first is a real constraint, not a preference — the compose file, the rootless build, and the UBI base images all assume it. If someone only has Docker, the compose file will mostly work, but do not promise it.");
+}
+
+// ── 1a. The running stack — diagram fig-01 ───────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "FOUNDATIONS · PREREQUISITES",
+    "What one `podman compose up` brings up",
+    "fig-01-running-stack",
+    "Figure 1.1 — Services send OTLP/HTTP :4318 to the bundled otel-lgtm Collector → Tempo/Mimir/Loki → Grafana; Kafka and Postgres sit alongside.");
+  addNotes(s,
+    "Show the shape before the ports table. Everything runs in one compose network. The services emit OTLP/HTTP on 4318 to the Collector bundled inside the grafana/otel-lgtm image; the Collector fans each signal to Tempo, Mimir, and Loki, and Grafana reads all three. Kafka and Postgres are shared infra the services talk to directly. " +
+    "Nothing here is installed by hand except the container engine — the backend arrives as images on the first compose up.");
 }
 
 // ── 1b. The stack, ports ─────────────────────────────────────────────────────
@@ -139,8 +151,9 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
     { code: "Tempo",     name: "localhost:3200", purpose: "trace storage and query" },
     { code: "Mimir",     name: "localhost:9090", purpose: "metric storage and query (Prometheus-compatible)" },
     { code: "Loki",      name: "localhost:3100", purpose: "log storage and query" },
-    { code: "API",       name: "localhost:8080", purpose: "the demo service" },
-  ], { colW: [2.20, 3.10, 6.79], rowH: 0.46 });
+    { code: "Order",     name: "localhost:8080", purpose: "external REST edge — place/read orders" },
+    { code: "Review",    name: "localhost:8081", purpose: "external GraphQL read edge" },
+  ], { colW: [2.20, 3.10, 6.79], rowH: 0.42 });
   addCaption(s, "From the host: localhost + port. Inside the compose network: service name (lgtm:4318) — the two are not interchangeable.");
   addNotes(s,
     "The backend is one image — grafana/otel-lgtm — that bundles Grafana, Tempo, Mimir, Loki, AND an OpenTelemetry Collector. Bundling keeps the demo to a single podman compose up, " +
@@ -169,11 +182,11 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
   addDiagramSlide(s, "FOUNDATIONS · FUNDAMENTALS",
     "One SDK, one Collector, three backends, one UI",
     "fig-02-otel-data-path",
-    "Figure 2.1 — The app's SDK exports OTLP to the Collector, which routes traces → Tempo, metrics → Mimir, logs → Loki, all viewed in Grafana.");
+    "Figure 2.1 — A service's SDK exports OTLP to the Collector, which routes traces → Tempo, metrics → Mimir, logs → Loki, all viewed in Grafana.");
   addNotes(s,
     "This is the spine of the whole talk; the same SVG appears in the tutorial as Figure 2.1. Trace the left-to-right flow: in-process SDK produces all three signals, exports once over OTLP to the Collector. " +
     "The Collector has three internal stages — receivers accept OTLP, processors act on the stream in order (memory_limiter, batch, later a sampler), exporters fan out to the three backends. " +
-    "Grafana reads all three and links them because they share identifiers. The key teaching point: the app emits everything; the Collector decides what survives. That separation is why sampling and routing can change without touching app code.");
+    "Grafana reads all three and links them because they share identifiers. The key teaching point: the application emits everything; the Collector decides what survives. That separation is why sampling and routing can change without touching application code.");
 }
 
 // ── 2b. Three signals ────────────────────────────────────────────────────────
@@ -230,7 +243,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
     "Figure 3.1 — POST /orders fans out: gRPC to inventory + payment, Postgres, Kafka order.placed → shipping + notification; review serves GraphQL.");
   addNotes(s,
     "Same SVG as Figure 3.1 in the tutorial. Walk the fan-out with your finger: a client POSTs to the order service; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification each consume that event; review answers a GraphQL read. " +
-    "The cast is a small set of familiar e-commerce services — order, inventory, payment, shipping, notification, review — run on Podman compose, not Kubernetes, because this is an OpenTelemetry talk. The names are borrowed from a separate data-mesh reference project; here they are just realistic domains to instrument. " +
+    "The cast is a small set of familiar e-commerce services — order, inventory, payment, shipping, notification, review — run on Podman compose, not Kubernetes, because this is an OpenTelemetry talk. " +
     "The teaching point: five protocols means five places a trace can continue or break. Auto-instrumentation will carry it across REST and gRPC for free; the Kafka hop is the one we wire by hand later.");
 }
 
@@ -405,6 +418,17 @@ divider("THE THREE SIGNALS", "Traces, metrics, logs — and the thread that ties
     "This is the honest edge of auto-instrumentation and the hook for the rest of the part. Show the beautiful free trace first, then deliberately point at what's missing: the consumers are off on their own. Resist the urge to hand-wave — name why (no instrumented client owns the Kafka publish header) so the fix in Chapter 7 feels inevitable rather than magic.");
 }
 
+// ── 5a. Metrics — diagram fig-05 ─────────────────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE THREE SIGNALS · METRICS",
+    "One request, two shapes",
+    "fig-05-metrics-exemplars",
+    "Figure 5.1 — The same request becomes a per-event span and a periodic histogram; the exemplar links a bucket back to a real trace.");
+  addNotes(s,
+    "Set up the RED slide with the mechanic: a span is one event, a metric is a running aggregate sampled on an interval — two shapes of the same traffic. The exemplar is the thread between them, which is exactly why the next slide's 'click the dot to open the slow trace' works.");
+}
+
 // ── 5. Metrics ───────────────────────────────────────────────────────────────
 {
   const s = S();
@@ -418,6 +442,17 @@ divider("THE THREE SIGNALS", "Traces, metrics, logs — and the thread that ties
   addNotes(s,
     "The single most valuable idea on this slide is exemplars — they turn 'p99 spiked at 14:32' from a dead end into 'here is a request that was actually slow.' That only works because the same SDK with the same resource emits both signals, so the ids line up. " +
     "Mention that domain questions ('how many orders declined for payment?') need a custom Counter you define with obs.otel.meter(); the transport metrics cover RED but not the business.");
+}
+
+// ── 6a. Logs — diagram fig-06 ────────────────────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE THREE SIGNALS · LOGS",
+    "The ids are the join key",
+    "fig-06-log-correlation",
+    "Figure 6.1 — Stamp the active trace_id onto every JSON log line; Loki and Tempo then point at each other.");
+  addNotes(s,
+    "Lead the logs section with the why before the code: a log line alone tells you what happened, not which request it belonged to. Stamp the trace_id and a line in Loki links to its trace in Tempo, and a span links back to its logs. The next slide is the filter that does the stamping.");
 }
 
 // ── 6. Logs (code) ───────────────────────────────────────────────────────────
