@@ -17,7 +17,7 @@ this chapter.
 The code is in `examples/04-logs/`; the logging setup is
 `services/common/obs/logging.py`.
 
-{% raw %}{% include excalidraw.html file="fig-06-log-correlation" alt="A request span's trace_id is stamped onto a JSON log line by a logging filter; the line goes to stdout and on to Loki, and Loki and Tempo link to each other by the shared trace_id." caption="Figure 6.1 — Stamp the trace_id onto every log, and Loki and Tempo point at each other" %}{% endraw %}
+{% raw %}{% include excalidraw.html file="fig-06-log-correlation" alt="A request span's trace_id is stamped onto each log record; the stdout JSON is the console view while the SDK exports the same record over OTLP to the Collector and Loki, and Loki and Tempo link to each other by the shared trace_id." caption="Figure 6.1 — Stamp the trace_id onto every log, and Loki and Tempo point at each other" %}{% endraw %}
 
 ## Why structured, and why the ids
 
@@ -67,14 +67,18 @@ level, logger name, message, and the two ids the filter attached — and
 fields like any other; if an exception is attached, the formatted traceback goes
 in too. One line of JSON per log event, with the trace id as a first-class field.
 
-**The wiring puts it on stdout.** `configure()` builds a `StreamHandler` to
-stdout, attaches the formatter and the filter, and replaces the root logger's
-handlers with it so every module's logger inherits the behaviour. Stdout is
-deliberate: in the bundled stack the collector picks up container stdout and
-routes it to Loki, so the service does not need to know anything about Loki — it
-just prints JSON, and the platform does the rest. A service calls
-`obslog.configure()` once at startup, before `otel.setup()`, and from then on
-every `log.info(...)` anywhere in that service is structured and trace-stamped.
+**Two sinks, one habit.** `configure()` builds a `StreamHandler` to stdout,
+attaches the formatter and the filter, and replaces the root logger's handlers so
+every module's logger inherits the behaviour. That stdout stream is the local
+view — what `podman logs` shows — and the filter is what puts the `trace_id` on
+those console lines. The path to Loki is the OpenTelemetry log signal: `setup()`,
+called right after `configure()`, appends an SDK `LoggingHandler`, so the same
+records are exported over OTLP to the Collector, which routes them to Loki. The
+SDK stamps the active `trace_id`/`span_id` onto those OTLP records itself — doing
+automatically for Loki what the filter does explicitly for the console — so the
+correlation holds without anyone parsing a stdout line. A service calls
+`obslog.configure()` once, before `otel.setup()`, and from then on every
+`log.info(...)` is both readable on the console and a correlated record in Loki.
 
 ## Build, run, observe
 
@@ -93,8 +97,9 @@ Tempo. From a span there, pivot back to its logs. Same id, both directions.
   `trace_id`/`span_id` on every record.
 - A logging `Filter` is the right place to read the current span and enrich the
   record at log time; a `Formatter` renders it as queryable JSON.
-- Logging to stdout lets the collector route to Loki, so the service stays
-  ignorant of the backend — and the trace id makes logs and traces link both ways.
+- Logs reach Loki over the OpenTelemetry log signal (the SDK `LoggingHandler`),
+  while stdout JSON stays the local console view — and the trace id, stamped on
+  both, makes logs and traces link both ways.
 
 Next, *Custom spans and the Kafka boundary* — the climax — closes the gap
 Chapter 4 left open and makes the asynchronous consumers part of the same trace.
@@ -104,4 +109,5 @@ Chapter 4 left open and makes the asynchronous consumers part of the same trace.
 *Verification status: <span class="status status--unverified">unverified</span>.
 A real run must confirm order logs are JSON with a populated `trace_id` during a
 request, the value matches the trace in Tempo, and Loki's derived field links to
-it. Collector-to-Loki stdout routing depends on the otel-lgtm image's defaults.*
+it. Logs reach Loki over the OTLP log signal, so the Collector's logs pipeline
+must be enabled — confirmed when the stack's Collector config is exercised.*

@@ -16,8 +16,8 @@
 <text x="256.0" y="150.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">stamps the ids</text>
 <text x="256.0" y="150.0" font-size="11" fill="#b8650a" text-anchor="middle">stamps the ids</text>
 <path d="M520,145 L600,105" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
-<text x="566.0" y="119.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">stdout → Collector</text>
-<text x="566.0" y="119.0" font-size="11" fill="#555" text-anchor="middle">stdout → Collector</text>
+<text x="566.0" y="119.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTLP → Collector</text>
+<text x="566.0" y="119.0" font-size="11" fill="#555" text-anchor="middle">OTLP → Collector</text>
 <path d="M675,132 L675,210" fill="none" stroke="#b8650a" stroke-width="2" marker-start="url(#am)" marker-end="url(#am)"/>
 <text x="681.0" y="165.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">trace_id</text>
 <text x="681.0" y="165.0" font-size="11" fill="#b8650a" text-anchor="middle">trace_id</text>

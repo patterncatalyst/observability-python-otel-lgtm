@@ -15,7 +15,7 @@ _POOL: asyncpg.Pool | None = None
 
 async def get_pool() -> asyncpg.Pool:
     """Create (once) and return the process-wide pool. DATABASE_URL is the
-    standard postg:// DSN, e.g. postgres://appuser:apppass@postgres:5432/orderdb."""
+    standard postgres:// DSN, e.g. postgres://appuser:apppass@postgres:5432/appdb."""
     global _POOL
     if _POOL is None:
         dsn = os.environ["DATABASE_URL"]

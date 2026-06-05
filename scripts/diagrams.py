@@ -198,7 +198,7 @@ def fig_06_log_correlation():
         ],
         edges=[
             {"x1": 210, "y1": 160, "x2": 290, "y2": 160, "label": "stamps the ids", "amber": True, "ly": -10},
-            {"x1": 520, "y1": 145, "x2": 600, "y2": 105, "label": "stdout → Collector"},
+            {"x1": 520, "y1": 145, "x2": 600, "y2": 105, "label": "OTLP → Collector"},
             {"x1": 675, "y1": 132, "x2": 675, "y2": 210, "label": "trace_id", "amber": True, "bidir": True},
         ],
         notes=[{"x": 430, "y": 34,

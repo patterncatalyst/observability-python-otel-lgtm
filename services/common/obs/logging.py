@@ -45,8 +45,10 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure(level: int = logging.INFO) -> logging.Logger:
-    """Configure root logging to emit trace-stamped JSON to stdout. The Collector
-    picks stdout up; in the bundled stack it lands in Loki."""
+    """Configure root logging to emit trace-stamped JSON to stdout — the local
+    ``podman logs`` view. Call this *before* ``obs.otel.setup``, which then
+    appends an OTLP handler so the same records also reach the Collector (and
+    Loki) over the OpenTelemetry log signal, auto-stamped with trace context."""
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
     handler.addFilter(TraceContextFilter())

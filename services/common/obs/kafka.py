@@ -18,7 +18,7 @@ from . import kafka_propagation
 
 
 def _bootstrap() -> str:
-    return os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
+    return os.getenv("KAFKA_BOOTSTRAP", "kafka:9094")  # in-network listener; host clients use :9092
 
 
 async def make_producer() -> AIOKafkaProducer:

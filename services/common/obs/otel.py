@@ -15,6 +15,7 @@ of the way; the message boundary is the part you wire by hand.
 """
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 
@@ -30,6 +31,8 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry._logs import set_logger_provider
+from opentelemetry.propagate import set_global_textmap
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,11 @@ def setup(service_name: str) -> ObsConfig:
     )
     trace.set_tracer_provider(tracer_provider)
 
+    # Propagation: W3C Trace Context. This is what makes the `traceparent` header
+    # understood on both ends of every HTTP/gRPC hop, and it is exactly the format
+    # obs.kafka_propagation injects into and extracts from Kafka headers by hand.
+    set_global_textmap(TraceContextTextMapPropagator())
+
     # --- metrics ---
     reader = PeriodicExportingMetricReader(
         OTLPMetricExporter(endpoint=f"{cfg.endpoint}/v1/metrics")
@@ -86,6 +94,15 @@ def setup(service_name: str) -> ObsConfig:
         BatchLogRecordProcessor(OTLPLogExporter(endpoint=f"{cfg.endpoint}/v1/logs"))
     )
     set_logger_provider(logger_provider)
+    # Bridge stdlib logging onto the OTLP log signal. This SDK handler exports every
+    # record to the Collector, which routes it to Loki — and the SDK auto-stamps the
+    # active trace_id/span_id onto each record, so the log↔trace correlation holds
+    # without anyone parsing a stdout line. obs.logging.configure() keeps a separate
+    # stdout JSON handler as the local `podman logs` view, so it must run *before*
+    # setup() (this appends; configure() resets handlers).
+    logging.getLogger().addHandler(
+        LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
+    )
 
     _TRACER = trace.get_tracer(service_name)
     _METER = metrics.get_meter(service_name)
