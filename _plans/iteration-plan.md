@@ -8,10 +8,11 @@ render_with_liquid: false
 # Iteration plan
 
 This project is built in iterations, packaged as `observability-python-otel-lgtm-rNN.x.tar.gz`,
-with the slide deck as `otel-lgtm-python-rNN.x.pptx`. The PRD is the scope
-authority; this page tracks the order of build.
+with a single, current slide deck at `presentations/otel-lgtm-python.pptx`
+(no revision in the filename — the iteration is tracked here and in git, not in the
+deck name). The PRD is the scope authority; this page tracks the order of build.
 
-## r0.1 — Foundation (this iteration)
+## r0.1 — Foundation (shipped)
 
 - [x] Repository skeleton: Jekyll site (layouts, includes, CSS), GitHub Pages workflow.
 - [x] House style unified on Red Hat red across the site, the shared diagrams, and the deck.
@@ -58,7 +59,22 @@ not a data mesh and not Kubernetes. The r0.1 `app/` and its example were removed
 - [x] Prerequisites chapter carries a Fedora 44 + macOS install table; the PRD and
   plans are unpublished from the site (internal tracking only).
 - [x] New `fig-03-service-topology`; deck built as
-  `presentations/otel-lgtm-python-r1.1.pptx`.
+  `presentations/otel-lgtm-python.pptx`.
+
+## r1.2 — Walkthrough: depth and diagrams (in progress)
+
+A guided pass through the whole site and the deck, section by section, then a full
+code walkthrough. The current chapters and figures are intentionally lean — enough
+to be correct and coherent — and this phase brings them to teaching depth as we
+read through them together.
+
+- [ ] Site walkthrough §0–§9: deepen each chapter's context and worked detail to
+  the depth standard; tighten voice for the senior-engineer audience.
+- [ ] Diagrams: enrich the existing figures and add new ones where a section
+  carries none, so each section has a visual that earns its place.
+- [ ] Carry the deepened prose and the new/expanded figures back into the deck.
+- [ ] Full code walkthrough: the `obs` library, the six services, the stack, the
+  protos, and the examples — confirming the narrative matches the code.
 
 ## r2.0 — The pipeline
 

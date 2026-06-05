@@ -13,14 +13,6 @@ Everything runs locally with a single `podman compose up`. No SaaS, no
 API keys, no cloud account, and no Kubernetes — just the OSS stack on your
 laptop. This is an OpenTelemetry talk, not a Kubernetes one.
 
-> **Status: three-signals iteration (r1.1).** Sections 0–9, the six
-> example services, the shared protos and `obs` library, the stack, and Demos 1–5 are
-> authored. The pipeline deep-dives (§8–§11, Demos 6–9) land in r2.0 — see
-> [`_plans/iteration-plan.md`](_plans/iteration-plan.md). Every demo currently
-> ships marked **`unverified`**: authored against the target versions but not
-> yet executed end-to-end in this environment (no container runtime here).
-> See [`_plans/reconciliation-plan.md`](_plans/reconciliation-plan.md).
-
 ---
 
 ## What's in here
@@ -87,7 +79,7 @@ Each chapter has a matching driver under `examples/NN-*/` with `demo.sh` and a
 ```bash
 cd deck
 export NODE_PATH=$(npm root -g)
-node deck.js                  # → ../presentations/otel-lgtm-python-r1.1.pptx
+node deck.js                  # → ../presentations/otel-lgtm-python.pptx
 ```
 
 Built decks land in [`presentations/`](presentations/) and are committed. See
@@ -141,7 +133,7 @@ talk. The gRPC contracts are shared protos under [`proto/`](proto/); the shared
 ## Requirements
 
 - **Podman** + **podman compose** (the stack is Podman-first, rootless, UBI-based — no Docker required)
-- **Python 3.14** target for the app (the env here is 3.12; `pyproject.toml` allows `>=3.12,<3.15` so it installs on the current UBI Python image while the 3.14 image tag is confirmed — tracked as an open question in the reconciliation plan)
+- **Python 3.14** target for the services; each `pyproject.toml` allows `>=3.12,<3.15` so the images build on a current UBI Python while the 3.14 tag is confirmed
 - **Node.js** (for building the deck)
 - **Ruby + Bundler** (only to serve the site locally; GitHub Pages builds it for you)
 
@@ -170,8 +162,7 @@ A couple of placeholders need real values:
 - `_config.yml` → `github_username` (currently `your-username`) and, if this is
   a project Pages site, confirm `baseurl: "/observability-python-otel-lgtm"`.
 - Confirm the **Python 3.14** UBI image tag and that the OpenTelemetry
-  auto-instrumentation wheels are available for 3.14 (the single biggest
-  unknown — see PRD §12 and the reconciliation plan).
+  auto-instrumentation wheels are available for 3.14 (the single biggest unknown).
 
 ---
 

@@ -1,6 +1,7 @@
 # presentations/
 
-Built slide decks (`.pptx`), one file per talk or cut. These are **committed** —
+The built slide deck (`.pptx`). A single, current file — no revision number in
+the name; git history carries the versions. Committed so it travels with the repo —
 they're deliverables, not throwaway build scratch.
 
 The tooling that produces them lives in [`../deck/`](../deck/): `deck.js` (the
@@ -15,7 +16,7 @@ Run from inside `deck/` so the relative asset and output paths resolve:
 ```bash
 cd deck
 export NODE_PATH=$(npm root -g)
-node deck.js          # → ../presentations/otel-lgtm-python-r01.0.pptx
+node deck.js          # → ../presentations/otel-lgtm-python.pptx
 ```
 
 ## Adding a second deck
@@ -25,7 +26,7 @@ its output here:
 
 ```bash
 cp deck/deck.js deck/deck-workshop.js
-# edit deck-workshop.js: change OUT to "../presentations/otel-lgtm-python-workshop-r01.0.pptx"
+# edit deck-workshop.js: change OUT to "../presentations/otel-lgtm-python-workshop.pptx"
 cd deck && node deck-workshop.js
 ```
 
@@ -36,4 +37,4 @@ stay consistent across every presentation.
 
 | File | Covers |
 |------|--------|
-| `otel-lgtm-python-r01.0.pptx` | Foundations — Sections 0–3 (20 slides) |
+| `otel-lgtm-python.pptx` | The talk deck — Sections 0–9 (31 slides) |

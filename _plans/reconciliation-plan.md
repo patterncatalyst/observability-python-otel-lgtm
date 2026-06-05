@@ -58,16 +58,20 @@ from a separate data-mesh reference project; this is not a data mesh. Decisions 
 | strawberry-graphql | `0.248.0` | GraphQLRouter API stable on this version. |
 | opentelemetry-api / -sdk | `1.30.0` | exporter + instrumentation versions move together. |
 | opentelemetry-exporter-otlp-proto-http | `1.30.0` | OTLP/HTTP log exporter import path (`_log_exporter`) still valid. |
-| opentelemetry-instrumentation-{fastapi,grpc,asyncpg} | `0.51b0` | the `0.NNbM` line tracks the `1.NN` core; **published for Python 3.14**. |
+| opentelemetry-instrumentation-{fastapi,grpc,asyncpg} | `0.51b0` | the `0.NNbM` line tracks the `1.NN` core; **confirm wheels published for Python 3.14** (the open question below). |
 
 ## Open questions carried from the PRD
 
 - Python 3.14 auto-instrumentation wheel availability (gates Demo 2's runtime).
 - Profiling backend choice (dedicated Pyroscope-style vs. native OTel profiling signal).
-- Exemplar support configured as Demo 9 needs in the pinned Mimir/Grafana.
-- One Kafka broker (current choice) vs. a small cluster.
-- Ship a Postman collection, or are `curl` + `hey` enough.
+- Exemplar support configured as Demo 7 needs in the pinned Mimir/Grafana.
+
+## Resolved
+
+- Postman collection — **shipped** (`tools/postman/`), alongside `curl` + `hey` + `ghz`.
+- Single Kafka broker (KRaft) — **kept**; a cluster is out of scope for a laptop demo.
 
 ## Iteration log
 
-- **r0.1** — Foundation scaffolded: site, shared stack, demo app, Demo 1, Figs 2/3/4/7/9/11, chapters §0–§3, deck through §3. All demos unverified; no real run in the loop.
+- **r0.1** — Foundation scaffolded: site, shared stack, the original FastAPI+worker app, Demo 1, Figs 2/3/4/7/9/11, chapters §0–§3, deck through §3. All demos unverified; no real run in the loop.
+- **r1.1** — Architecture pivot to six example services across REST/gRPC/GraphQL/Kafka/Postgres; shared `proto/shop` contracts and the `obs` library; rewritten stack and tooling (curl/Postman/hey/ghz); chapters §3–§9 (the full three-signals arc, incl. §8 auto/custom/hybrid and §9 the Grafana correlated view); Demos 1–7; professional-audience rewrite; Fedora 44 + macOS prerequisites table; plans unpublished from the site. Still unverified; no real run in the loop.

@@ -17,7 +17,7 @@ const {
 // Built decks live in the repo under presentations/ (one .pptx per talk/cut).
 // Run from inside deck/ (cd deck && node deck.js) so ../presentations resolves
 // to the repo root, and ./assets + ./png are found by deck-helpers.js.
-const OUT = "../presentations/otel-lgtm-python-r1.1.pptx";
+const OUT = "../presentations/otel-lgtm-python.pptx";
 const REV = "r01.0";
 
 const pres = newDeck();
