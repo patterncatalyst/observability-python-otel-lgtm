@@ -26,6 +26,8 @@ deck/node_modules/
 # ── Build / QA artifacts ─────────────────────────────────────────────────────
 qa/
 *.pdf
+# Local/throwaway deck builds. The committed decks live in presentations/ (tracked);
+# only stray builds left in deck/ are ignored.
 deck/*.pptx
 deck/png/*.tmp.png
 
@@ -41,3 +43,6 @@ Thumbs.db
 .vscode/
 *.swp
 *~
+
+# gRPC stubs compiled from proto/ (build artifacts)
+generated/

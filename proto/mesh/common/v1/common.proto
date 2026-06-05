@@ -1,0 +1,12 @@
+// Shared message types used across the mesh's gRPC services.
+// Compiled by scripts/gen-protos.sh into each service's generated/ package.
+syntax = "proto3";
+
+package mesh.common.v1;
+
+// Money as integer minor units (cents) plus an ISO-4217 currency code, so we
+// never ship floating-point money across a wire.
+message Money {
+  int64 amount_cents = 1;
+  string currency = 2;   // e.g. "USD"
+}

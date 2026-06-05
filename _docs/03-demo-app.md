@@ -1,190 +1,136 @@
 ---
-title: "The demo app and how it's built"
+title: "The demo mesh and how it's built"
 order: 3
 part: "Foundations"
-description: "A FastAPI service and a Kafka worker that make one request travel API → Kafka → worker → Postgres → Kafka → API."
-duration: 12 minutes
+description: "Six small services — order, inventory, payment, shipping, notification, review — that turn one order into a journey across REST, gRPC, GraphQL, Kafka, and Postgres."
+duration: 14 minutes
 ---
 
-Everything that follows instruments one small service, so it is worth
-understanding it well before any telemetry is added. It is deliberately a
-realistic shape: a request that does not finish in one process, but crosses an
-async message boundary and a database before it comes back.
+Everything that follows instruments one system, so it is worth understanding
+that system before any telemetry is added. It is deliberately a realistic shape:
+a single user action that does not finish in one process or even one protocol. It
+crosses synchronous gRPC calls, an asynchronous message boundary, and a database
+before the customer is told anything — the kind of fan-out where, without
+tracing, "why was that order slow?" has no good answer.
 
-The code is in `examples/01-app-no-telemetry/` and the shared app under `app/`.
-The run script there builds the stack and drives one request; its `README.md`
-covers what it does and how to drive it.
+The objects mirror the
+[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python):
+**order, inventory, payment, shipping, notification, review**. We keep its domain
+shape and its protocol mix, but swap its Kubernetes/Helm/Istio deployment for
+plain Podman compose — this is an OpenTelemetry talk, not a Kubernetes one.
 
-{% raw %}{% include excalidraw.html file="fig-03-app-topology" alt="A client POSTs to FastAPI, which publishes to the Kafka requests topic; a consumer reads it, queries and writes Postgres, and publishes to the replies topic, which FastAPI consumes and returns to the client." caption="Figure 3.1 — One request, two Kafka hops, a database round trip, and back" %}{% endraw %}
+The code is under `services/`, the shared protos under `proto/`, and the runnable
+baseline in `examples/01-mesh-no-telemetry/`. The run script there builds the
+stack and places an order; its `README.md` covers what it does.
 
-## The shape of the round trip
+{% raw %}{% include excalidraw.html file="fig-03-service-topology" alt="A client POSTs to the order service over REST; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification consume the event; the review service serves a GraphQL read API over Postgres." caption="Figure 3.1 — One order, five protocols, six services" %}{% endraw %}
 
-A client `POST`s to `/compute`. The FastAPI service publishes the job to the
-`compute.requests` topic and then *waits* for a reply. A separate worker process
-consumes that topic, reads a config row from Postgres, computes a result, writes
-a `jobs` row, and publishes the answer to `compute.replies`. The API has been
-consuming that reply topic the whole time; it matches the reply to the waiting
-request and returns it to the client.
+## The one request the whole talk follows
 
-That request/reply-over-Kafka pattern is the reason this demo earns its keep:
-the trace context has to survive two message hops and a process boundary to stay
-one trace. Everything in the talk's second half is about that.
+`POST /orders` on the order service is the action everything else hangs off. In
+order, it does five things in sequence:
+
+1. **Reserve stock** — a gRPC call to the inventory service (`Reserve`).
+2. **Authorize payment** — a gRPC call to the payment service (`Authorize`).
+3. **Persist the order** — an `INSERT` into Postgres.
+4. **Announce it** — publish an `order.placed` event to Kafka.
+5. **Return** the confirmed order to the caller.
+
+Two more services react asynchronously: **shipping** consumes `order.placed` and
+writes a shipment row; **notification** consumes the same event and "sends" a
+message (a log line standing in for email/SMS). Separately, the **review**
+service exposes a **GraphQL** read API so a client can fetch an order and its
+product reviews in one round trip.
+
+That is five protocols in one workflow — REST at the edge, gRPC between order and
+its two synchronous dependencies, Kafka for the async fan-out, Postgres
+underneath most services, and GraphQL on the read side. Each is a different place
+where a trace can either continue or break, which is exactly what makes it a good
+teaching system.
 
 ## How the code works
 
-### The two structures that make request/reply work
+**The shared library does the plumbing once.** Every service depends on a small
+package, `obs` (under `services/common/`), so the instrumentation story is
+identical everywhere and lives in one place. It exposes:
 
-The API turns an asynchronous, fire-and-forget message system into a synchronous
-HTTP call, and it does that with one structure:
+- `obs.otel.setup(name)` — builds the OpenTelemetry resource, the OTLP/HTTP
+  exporters for traces, metrics, and logs, sets the W3C propagator, and turns on
+  auto-instrumentation for the synchronous hops.
+- `obs.kafka` / `obs.kafka_propagation` — a JSON producer/consumer plus the
+  inject/extract helpers that carry trace context across Kafka.
+- `obs.db` — one asyncpg pool from `DATABASE_URL`.
+- `obs.logging` — JSON logs stamped with the current `trace_id`/`span_id`.
 
-```python
-PENDING: dict[str, asyncio.Future] = {}
-```
+In this Foundations chapter none of that is switched on yet (the baseline runs
+with `OTEL_SDK_DISABLED=true`); the next four chapters turn it on one signal at a
+time. What matters here is that the *application* code below has essentially no
+telemetry in it — that is the point.
 
-`PENDING` maps a `request_id` to a `Future` representing "the reply we are still
-waiting for." When a request comes in, the handler creates a `Future`, parks it
-in `PENDING` under a fresh `request_id`, publishes the job, and then `await`s the
-`Future`. A background task consuming the reply topic is the only thing that
-resolves those futures. The `request_id` is the key because it is unique per
-in-flight request, so a reply can be matched back to exactly the call that
-produced it — the same idea as the `trace_id` you will add later, doing by hand
-what the trace context will do for free.
+**The order handler is the spine.** In `services/order/order/main.py`, the
+handler creates an `order_id`, then calls the two gRPC dependencies through a
+thin `Clients` wrapper (`services/order/order/grpc_clients.py`). It checks each
+result and short-circuits with a meaningful HTTP status if either fails —
+`409` when stock cannot be reserved, `402` when payment declines — writing a
+row with the rejection reason either way so failures are not invisible. Only when
+both succeed does it persist a `confirmed` order and publish the event. The order
+of these calls is deliberate: reserve before you charge, charge before you
+promise, promise before you announce.
 
-### The request handler, in full
+**The gRPC services own a domain each.** Inventory (`services/inventory`) backs
+`Reserve` with a single conditional `UPDATE ... WHERE on_hand >= $qty RETURNING
+on_hand`, which both checks and decrements stock atomically, and records a
+reservation row keyed by `order_id` so a retry is idempotent. Payment
+(`services/payment`) authorizes any amount at or under a fixed ceiling and
+declines anything above it — a trivial, deterministic rule whose only job is to
+give us a repeatable success path and a repeatable failure path on demand.
 
-```python
-@app.post("/compute")
-async def compute(req: ComputeRequest) -> dict:
-    request_id = str(uuid.uuid4())
-    loop = asyncio.get_running_loop()
-    fut: asyncio.Future = loop.create_future()
-    PENDING[request_id] = fut
-    try:
-        await app.state.producer.send_and_wait(
-            settings.requests_topic,
-            key=request_id,
-            value={"request_id": request_id, "n": req.n},
-        )
-        try:
-            reply = await asyncio.wait_for(fut, timeout=settings.reply_timeout_s)
-        except asyncio.TimeoutError:
-            raise HTTPException(status_code=504, detail="worker did not reply in time")
-    finally:
-        PENDING.pop(request_id, None)
-    return {"request_id": request_id, "n": req.n, "result": reply["result"]}
-```
+**The contracts are shared protos.** The gRPC message and service definitions
+live at the repo top level under `proto/mesh/...` (inventory, payment, and a
+common `Money` type), compiled to Python stubs by `scripts/gen-protos.sh`. One
+copy of the truth, compiled into each service that needs it — the same place the
+reference architecture keeps them.
 
-Each line earns its place. The `request_id` is the correlation key, generated
-before anything is sent. `send_and_wait` publishes the job and waits for the
-broker to acknowledge it, so a publish failure surfaces as an error here rather
-than silently dropping the request. The message `key` is the `request_id`, which
-keeps all messages for one request on one partition and in order. The
-`asyncio.wait_for` is the bridge from async messaging back to a blocking HTTP
-response: it suspends the handler until the reply consumer resolves the future,
-or gives up after a timeout and returns `504` rather than hanging forever. The
-`finally` removes the entry whatever happens, so `PENDING` cannot leak entries
-for requests that timed out.
+**The consumers and the read side.** Shipping and notification
+(`services/shipping`, `services/notification`) are `aiokafka` consumers that
+loop over `order.placed`; today they simply act on the event. The review service
+(`services/review`) is a Strawberry GraphQL app whose resolvers read orders and
+reviews from Postgres.
 
-### The reply consumer, the other half
-
-```python
-async def _consume_replies(app: FastAPI) -> None:
-    consumer = await make_consumer(settings.replies_topic, group_id="compute-api")
-    app.state.reply_consumer = consumer
-    async for msg in consumer:
-        data = msg.value
-        fut = PENDING.get(data.get("request_id"))
-        if fut is not None and not fut.done():
-            fut.set_result(data)
-```
-
-This runs as a background task started in the app's `lifespan`. For every reply,
-it looks up the waiting future by `request_id` and resolves it. The `not
-fut.done()` guard avoids setting a result twice if a duplicate reply ever
-arrives. Starting it in `lifespan` (rather than per request) means one consumer
-serves every in-flight request in this process, sharing the same event loop as
-the handlers.
-
-### The worker, where the work happens
-
-```python
-async for msg in consumer:
-    data = msg.value
-    request_id = data["request_id"]
-    n = int(data["n"])
-    multiplier = await db.get_multiplier()       # SELECT
-    result = (n * (n + 1) // 2) * multiplier
-    await db.record_job(request_id, n, result)    # INSERT
-    await producer.send_and_wait(
-        settings.replies_topic, key=request_id,
-        value={"request_id": request_id, "result": result},
-    )
-```
-
-The worker consumes a job, does a read-then-write round trip against Postgres —
-a `SELECT` for the multiplier config, an `INSERT` to record the job — computes
-the triangular number `n·(n+1)/2` times that multiplier, and publishes the reply
-keyed by the same `request_id`. The database calls are deliberate: they give the
-later chapters real database spans to capture and a place to show that a span
-from the worker and a span from Postgres can belong to one trace.
-
-### The fragile bits, named not hidden
-
-A few simplifications are worth calling out so they do not surprise you. Topics
-auto-create in this demo (`KAFKA_AUTO_CREATE_TOPICS_ENABLE=true`); a production
-setup would create them explicitly with chosen partition counts. `PENDING` lives
-in one process, so the request/reply trick assumes the API does not run as
-multiple replicas behind a load balancer — fine for a laptop demo, not for a
-fleet. And the computation is intentionally trivial; it is a stand-in for real
-work, present so there is something to trace, not because triangular numbers are
-interesting.
+**Document, don't hide, the fragile bits.** For laptop simplicity every domain
+shares one Postgres database (`meshdb`) rather than a store per domain as a real
+data mesh would; the seam is honest and noted in `stack/db/init/01-schema.sql`.
+The payment ceiling and the catalog unit price are hardcoded so demos are
+deterministic. Kafka auto-creates the `order.placed` topic. None of these change
+the observability story — the spans and metrics are identical — but they would
+all change in production.
 
 ## Build, run, observe
 
 ```bash
-cd examples/01-app-no-telemetry && ./demo.sh
+cd examples/01-mesh-no-telemetry && ./demo.sh
 ```
 
-This builds the app image, brings the whole stack up, waits for the API to
-report healthy, and posts one request. Expect:
-
-```
-{"request_id":"…","n":100,"result":5050}
-```
-
-Then open Grafana at <http://localhost:3000> and look for this request. There is
-nothing there. The app is healthy and completely opaque — which is exactly the
-starting point the next part fixes.
-
-## Cross-check
-
-Confirm the request actually exercised the database, rather than trusting the
-HTTP response alone:
-
-```bash
-podman exec -it postgres psql -U appuser -d appdb -c \
-  "SELECT request_id, n, result FROM jobs ORDER BY created_at DESC LIMIT 1;"
-```
-
-A row whose `result` matches the HTTP response confirms the request travelled the
-full chain — API to worker to Postgres and back — and did not short-circuit.
+It brings the whole stack up in Podman with telemetry disabled and places one
+order. You will get a `confirmed` JSON response — and nothing in Grafana, because
+the SDK is off. That opacity is the baseline the next chapter starts to remove.
 
 ## What you learned
 
-- The service is an async request/reply over Kafka: the API publishes a job and
-  waits; the worker does the work against Postgres and replies.
-- A `request_id` parked in a `PENDING` future map is what turns fire-and-forget
-  messaging back into a synchronous HTTP response — and foreshadows the
-  `trace_id`.
-- A healthy service is opaque by default; the gap between "it works" and "I can
-  see why" is what the rest of the talk closes.
+- One `POST /orders` fans out across REST, gRPC (twice), Postgres, and Kafka,
+  with two async consumers and a separate GraphQL read path — five protocols.
+- A shared `obs` library will carry all the instrumentation, so application code
+  stays clean and the telemetry story is identical across services.
+- gRPC contracts are shared protos at the repo top level; the async hop is plain
+  JSON over Kafka.
 
-The next part starts closing it — with auto-instrumentation that produces traces
-without changing a line of this code.
+Next, *Auto-instrumentation* turns the SDK on and gets a trace across the
+synchronous hops for free — and shows exactly where that free ride ends.
 
 ---
 
 *Verification status: <span class="status status--unverified">unverified</span>.
-A real run must confirm the round trip completes and returns `result: 5050` for
-`n=100`, a `jobs` row is written, and the app image builds on the chosen UBI
-Python base. See `examples/01-app-no-telemetry/README.md`.*
+A real run must confirm all six service images build on the chosen UBI Python
+base, the protos compile into each image, an order returns `confirmed`, and a
+shipment row and notification log appear after the event. See
+`examples/01-mesh-no-telemetry/README.md`.*

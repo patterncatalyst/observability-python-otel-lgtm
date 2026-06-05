@@ -15,7 +15,7 @@ scripts/render_pngs.sh          # PNG                → deck/png/
 | File | Figure | Used by |
 |---|---|---|
 | `fig-02-otel-data-path` | 2.1 — One SDK, one Collector, three backends | Fundamentals chapter; deck §2 |
-| `fig-03-app-topology` | 3.1 — The async round trip | The demo app chapter; deck §3 |
+| `fig-03-service-topology` | 3.1 — One order across the mesh | The demo mesh chapter; deck §3 |
 | `fig-04-instrumentation-layers` | 4.1 — Auto vs. custom vs. hybrid | Hybrid chapter (r2.0); deck |
 | `fig-07-context-propagation` | 7.1 — traceparent across the Kafka hop | Custom spans chapter (r1.0); deck |
 | `fig-09-sampling-location` | 9.1 — Head vs. tail decision point | Sampling chapter (r2.0); deck |

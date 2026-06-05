@@ -1,0 +1,44 @@
+# Shared Containerfile for every mesh service. Build context is the repo ROOT so
+# the image can see the top-level proto/ and the shared services/common/ library.
+# Select the service with --build-arg SERVICE=<name>; compose does this per service.
+#
+#   podman build -f services/Containerfile --build-arg SERVICE=order -t mesh/order .
+#
+# UBI Python base; rootless final stage. Pin PYTHON_BASE to the confirmed 3.14
+# tag once it's verified — the range in each pyproject allows 3.12+ meanwhile.
+ARG PYTHON_BASE=registry.access.redhat.com/ubi9/python-312:latest
+
+FROM ${PYTHON_BASE}
+ARG SERVICE
+USER 0
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/generated \
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318
+
+RUN pip install --no-cache-dir poetry grpcio-tools
+
+# Shared sources: the proto contracts and the obs library, then the one service.
+COPY proto/ proto/
+COPY services/common/ services/common/
+COPY services/${SERVICE}/ services/${SERVICE}/
+
+# Compile the shared protos into /app/generated (on PYTHONPATH). Harmless for the
+# services that don't import them.
+RUN python -m grpc_tools.protoc -I proto \
+        --python_out=generated --grpc_python_out=generated --pyi_out=generated \
+        proto/mesh/common/v1/common.proto \
+        proto/mesh/inventory/v1/inventory.proto \
+        proto/mesh/payment/v1/payment.proto \
+ && find generated -type d -exec sh -c 'touch "$0/__init__.py"' {} \;
+
+# Install the service plus its path dependency on ../common into the system env.
+# (../common resolves because both were copied under /app/services/.)
+RUN cd services/${SERVICE} \
+ && poetry config virtualenvs.create false \
+ && poetry install --only main
+
+USER 1001
+# Every service's pyproject defines the same `serve` console script.
+CMD ["serve"]

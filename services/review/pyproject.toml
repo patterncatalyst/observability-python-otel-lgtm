@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "review"
+version = "0.1.0"
+description = "Review service — GraphQL read API over orders and reviews."
+authors = ["Robert Sedor"]
+packages = [{ include = "review" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.15"
+obs = { path = "../common", develop = true }
+fastapi = "^0.115.6"
+uvicorn = "^0.34.0"
+strawberry-graphql = "^0.248.0"
+asyncpg = "^0.30.0"
+
+[tool.poetry.scripts]
+serve = "review.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -55,12 +55,12 @@ processors:
           threshold_ms: 1000
 
       # Policy 3: keep every trace from a specific high-value endpoint
-      # (replace `/api/checkout` with your business-critical routes)
+      # (replace `/orders` with your business-critical routes)
       - name: critical-routes
         type: string_attribute
         string_attribute:
           key: http.target
-          values: [/compute]
+          values: [/orders]
 
       # Policy 4: keep a small fraction of healthy traces for sanity
       - name: probabilistic-baseline

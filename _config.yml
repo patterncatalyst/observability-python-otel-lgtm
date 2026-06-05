@@ -11,7 +11,7 @@ brand_emoji: "🔭"   # appears next to the title in the header
 
 # GitHub identity for header link and example sourcing
 # TODO(robert): set these to the real GitHub owner/repo before publishing.
-github_username: "patterncatalyst"
+github_username: "your-username"
 github_repo: "observability-python-otel-lgtm"
 
 # baseurl

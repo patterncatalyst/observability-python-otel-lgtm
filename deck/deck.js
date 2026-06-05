@@ -14,7 +14,10 @@ const {
   addStatusTable, addCaption, addCodeSlide, addDiagramSlide, addSectionDivider, addNotes,
 } = H;
 
-const OUT = "/mnt/user-data/outputs/otel-lgtm-python-r01.0.pptx";
+// Built decks live in the repo under presentations/ (one .pptx per talk/cut).
+// Run from inside deck/ (cd deck && node deck.js) so ../presentations resolves
+// to the repo root, and ./assets + ./png are found by deck-helpers.js.
+const OUT = "../presentations/otel-lgtm-python-r1.0.pptx";
 const REV = "r01.0";
 
 const pres = newDeck();
@@ -178,7 +181,7 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
   const s = S();
   addContentTitle(s, "FOUNDATIONS · FUNDAMENTALS", "Three signals, three questions");
   addBullets(s, [
-    "A trace answers where did the time go, and what happened along the way — a tree of spans sharing one trace_id, each with a duration, attributes, and a parent. One trace should span the HTTP request, the Kafka publish, the worker, Postgres, and the reply.",
+    "A trace answers where did the time go, and what happened along the way — a tree of spans sharing one trace_id, each with a duration, attributes, and a parent. One trace should span the REST request, both gRPC calls, the Postgres writes, the Kafka publish, and the shipping and notification consumers.",
     "A metric answers how much, how often, how slow — in aggregate. Cheap numbers over time: request rate, error rate, duration percentiles. Small enough to keep for everything, always — which is what alerts fire on.",
     "A log answers what exactly happened at this instant — a timestamped, ideally structured record carrying the detail a metric averages away and a span has no room for.",
   ], { fontSize: 16 });
@@ -210,165 +213,297 @@ divider("00", "Foundations", "The stack, the signals, and the app we will instru
   addContentTitle(s, "FOUNDATIONS · FUNDAMENTALS", "Why the shared context is the point");
   addBullets(s, [
     "Context propagation is what makes this one system, not three. When a span is active the SDK can stamp its trace_id and span_id onto log records emitted in the same breath, and attach an exemplar — a pointer back to a representative trace — onto a metric.",
-    "The hard part, and the part most material skips: keeping that context alive across a boundary that is not a function call. When the API hands work to the worker over Kafka, that worker is a different process with no shared call stack.",
-    "Unless the trace context travels with the message, the worker starts a brand-new trace and the chain breaks in the middle. Carrying it across that hop is the job of the custom-instrumentation chapter.",
+    "The hard part, and the part most material skips: keeping that context alive across a boundary that is not a function call. When the order service publishes order.placed to Kafka, the shipping and notification consumers are different processes with no shared call stack.",
+    "Unless the trace context travels with the message, each consumer starts a brand-new trace and the chain breaks in the middle. Carrying it across that hop is the job of the custom-instrumentation chapter.",
   ], { fontSize: 16 });
   addNotes(s,
-    "This is the thesis statement for the second half of the talk. Make the audience feel the problem before we solve it: an in-process call shares context for free through the call stack, but a Kafka message is just bytes — the trace context is not in those bytes unless you put it there. " +
+    "This is the thesis statement for the second half of the talk. Make the audience feel the problem before we solve it: an in-process call shares context for free through the call stack, and gRPC carries it in a header automatically, but a Kafka message is just bytes — the trace context is not in those bytes unless you put it there. " +
     "Plant the flag now: the single trace_id flowing through every hop is the foundation everything else is built on, and the Kafka hop is where it is easiest to lose. We will fix it explicitly later with a propagator that writes context into message headers.");
 }
 
-// ── 3. Demo app — diagram fig-03 ─────────────────────────────────────────────
+// ── 3. Demo mesh — diagram fig-03 ────────────────────────────────────────────
 {
   const s = S();
-  addDiagramSlide(s, "FOUNDATIONS · THE DEMO APP",
-    "One request, there and back again",
-    "fig-03-app-topology",
-    "Figure 3.1 — Client → FastAPI → Kafka requests → worker → Postgres → Kafka replies → FastAPI → client.");
+  addDiagramSlide(s, "FOUNDATIONS · THE DEMO MESH",
+    "One order, five protocols, six services",
+    "fig-03-service-topology",
+    "Figure 3.1 — POST /orders fans out: gRPC to inventory + payment, Postgres, Kafka order.placed → shipping + notification; review serves GraphQL.");
   addNotes(s,
-    "Same SVG as Figure 3.1 in the tutorial. Walk the round trip with your finger: client POSTs to /compute; FastAPI publishes to compute.requests and then waits; a separate worker consumes it, does a SELECT then an INSERT against Postgres, computes a result, and publishes to compute.replies; " +
-    "FastAPI has been consuming replies the whole time, matches this one to the waiting request, and returns it. " +
-    "Stress the two Kafka hops and the process boundary — that is precisely what the trace context must survive to stay one trace. This topology is why the demo is worth instrumenting.");
+    "Same SVG as Figure 3.1 in the tutorial. Walk the fan-out with your finger: a client POSTs to the order service; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification each consume that event; review answers a GraphQL read. " +
+    "The objects mirror the data-mesh reference architecture — order, inventory, payment, shipping, notification, review — but we run it all in Podman compose, not Kubernetes, because this is an OpenTelemetry talk. " +
+    "The teaching point: five protocols means five places a trace can continue or break. Auto-instrumentation will carry it across REST and gRPC for free; the Kafka hop is the one we wire by hand later.");
 }
 
-// ── 3b. Shape of the round trip ──────────────────────────────────────────────
+// ── 3b. The one request ──────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO APP", "The shape of the round trip");
+  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "The one request the whole talk follows");
   addBullets(s, [
-    "A client POSTs to /compute. FastAPI publishes the job to compute.requests and then waits for a reply.",
-    "A separate worker process consumes that topic, reads a config row from Postgres, computes a result, writes a jobs row, and publishes the answer to compute.replies.",
-    "The API has been consuming the reply topic the whole time; it matches the reply to the waiting request and returns it to the client.",
-    "That request/reply-over-Kafka pattern is the reason this demo earns its keep: the trace context has to survive two message hops and a process boundary to stay one trace.",
-  ], { fontSize: 17 });
+    "POST /orders on the order service is the action everything hangs off. In sequence: reserve stock (gRPC → inventory), authorize payment (gRPC → payment), persist the order (Postgres), publish order.placed (Kafka), return the confirmed order.",
+    "Two services react asynchronously: shipping consumes the event and writes a shipment; notification consumes the same event and sends a message. A separate review service exposes a GraphQL read API over orders and reviews.",
+    "That is REST at the edge, gRPC between services, Kafka for the async fan-out, Postgres underneath, and GraphQL on the read side — one workflow, five protocols, all of which a single trace must stay whole across.",
+  ], { fontSize: 16 });
+  addCaption(s, "Reserve before you charge, charge before you promise, promise before you announce.");
   addNotes(s,
-    "This is the prose version of the diagram — use it to set up the code that follows. The phrase to repeat is 'publishes, then waits': the HTTP call is synchronous from the caller's point of view, but underneath it is fire-and-forget messaging that we glue back together. " +
-    "Everything in the talk's second half is about keeping that glue traceable. Now we look at the two structures that make the synchronous-over-async trick work.");
+    "Set up the order of operations as deliberate, not arbitrary: you reserve stock before charging, charge before confirming, confirm before announcing — so a failure at any step leaves the system consistent and the customer correctly informed. " +
+    "The order service short-circuits with a 409 if stock can't be reserved and a 402 if payment declines, writing a row with the reason either way so failures are visible. This is the spine the next slides instrument.");
 }
 
-// ── 3c. PENDING + handler (code) ─────────────────────────────────────────────
+// ── 3c. The shared obs library ───────────────────────────────────────────────
 {
   const s = S();
-  addCodeSlide(s, "FOUNDATIONS · THE DEMO APP", "Synchronous HTTP over async messaging", "python · FastAPI",
+  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "One shared library carries all the telemetry");
+  addBullets(s, [
+    "Every service depends on a small package, obs (services/common/), so the instrumentation story is identical everywhere and lives in one reviewable place — application code stays clean.",
+    "obs.otel.setup(name) builds the resource, the OTLP/HTTP exporters for all three signals, the W3C propagator, and turns on auto-instrumentation for FastAPI, gRPC, and asyncpg.",
+    "obs.kafka / obs.kafka_propagation publish JSON events and carry trace context across Kafka; obs.db is one asyncpg pool; obs.logging emits trace-stamped JSON. In Foundations none of it is switched on yet (OTEL_SDK_DISABLED=true).",
+  ], { fontSize: 16 });
+  addNotes(s,
+    "The point of a shared obs package is that the talk can show the SAME setup() call in every service rather than six slightly different bootstraps. It is also what makes the no-telemetry baseline a one-variable change: setup() checks OTEL_SDK_DISABLED first and returns no-op providers when it is true. " +
+    "Name the four submodules so the audience has a map for the chapters that follow: otel (the bootstrap), kafka/kafka_propagation (the async hop), db (the pool), logging (correlated logs).");
+}
+
+// ── 3d. order handler (code) ─────────────────────────────────────────────────
+{
+  const s = S();
+  addCodeSlide(s, "FOUNDATIONS · THE DEMO MESH", "The order handler — the spine", "python · FastAPI",
     [
-      "PENDING: dict[str, asyncio.Future] = {}   # request_id -> the reply we await",
-      "",
-      "@app.post(\"/compute\")",
-      "async def compute(req: ComputeRequest) -> dict:",
-      "    request_id = str(uuid.uuid4())          # the correlation key",
-      "    fut = asyncio.get_running_loop().create_future()",
-      "    PENDING[request_id] = fut",
-      "    try:",
-      "        await app.state.producer.send_and_wait(   # publish + broker ack",
-      "            settings.requests_topic, key=request_id,",
-      "            value={\"request_id\": request_id, \"n\": req.n})",
-      "        reply = await asyncio.wait_for(fut, settings.reply_timeout_s)",
-      "    except asyncio.TimeoutError:",
-      "        raise HTTPException(504, \"worker did not reply in time\")",
-      "    finally:",
-      "        PENDING.pop(request_id, None)        # never leak a pending entry",
-      "    return {\"request_id\": request_id, \"n\": req.n, \"result\": reply[\"result\"]}",
+      "@app.post(\"/orders\")",
+      "async def create_order(body: CreateOrder) -> dict:",
+      "    order_id = str(uuid.uuid4())",
+      "    amount_cents = UNIT_PRICE_CENTS * body.quantity",
+      "    # 1. reserve stock (gRPC → inventory; auto-traced)",
+      "    reservation = await app.state.clients.reserve(order_id, body.sku, body.quantity)",
+      "    if not reservation.reserved:",
+      "        raise HTTPException(409, \"insufficient stock\")",
+      "    # 2. authorize payment (gRPC → payment; auto-traced)",
+      "    auth = await app.state.clients.authorize(order_id, body.customer_id, amount_cents)",
+      "    if not auth.authorized:",
+      "        raise HTTPException(402, f\"payment declined: {auth.decline_reason}\")",
+      "    # 3. persist (Postgres)   4. announce (Kafka, context in headers)",
+      "    await repo.insert_order(order_id, ..., status=\"confirmed\")",
+      "    await obskafka.publish_event(app.state.producer, ORDER_PLACED_TOPIC,",
+      "                                 key=order_id, value={...})",
+      "    return {\"order_id\": order_id, \"status\": \"confirmed\"}",
     ],
-    "PENDING maps request_id → Future; the handler parks one, publishes, and awaits it.",
+    "Two gRPC calls, a Postgres write, a Kafka publish — and not one line of tracing code.",
     { fontSize: 10 });
   addNotes(s,
-    "Every line earns its place. request_id is generated before anything is sent — it is the correlation key, doing by hand exactly what the trace_id will do for free later. " +
-    "send_and_wait publishes AND waits for the broker to acknowledge, so a publish failure surfaces here rather than silently dropping the request. The message key is the request_id, which keeps all messages for one request on one partition and in order. " +
-    "asyncio.wait_for is the bridge from async messaging back to a blocking HTTP response: it suspends the handler until the reply consumer resolves the future, or gives up and returns 504 rather than hanging forever. " +
-    "The finally pops the entry whatever happens, so PENDING cannot leak entries for timed-out requests. Call out the parallel to trace_id explicitly — this hand-rolled correlation is the thing OpenTelemetry will automate.");
+    "The thing to point at is what is NOT here: no spans, no trace ids, no propagation. The handler reads as plain business logic — reserve, authorize, persist, announce — and yet by the next part it produces a full trace across two processes. " +
+    "That is the payoff of auto-instrumentation plus the obs library: the gRPC client calls and the Postgres queries instrument themselves; the only deliberately-instrumented hop is the Kafka publish, and even that is hidden inside obskafka.publish_event. Stress the short-circuits: 409 on stock, 402 on payment — those give us repeatable error traces later.");
 }
 
-// ── 3d. Reply consumer (code) ────────────────────────────────────────────────
+// ── 3e. inventory Reserve (code) ─────────────────────────────────────────────
 {
   const s = S();
-  addCodeSlide(s, "FOUNDATIONS · THE DEMO APP", "The reply consumer — the other half", "python · aiokafka",
+  addCodeSlide(s, "FOUNDATIONS · THE DEMO MESH", "A gRPC service — inventory.Reserve", "python · grpc.aio + asyncpg",
     [
-      "async def _consume_replies(app: FastAPI) -> None:",
-      "    consumer = await make_consumer(settings.replies_topic,",
-      "                                   group_id=\"compute-api\")",
-      "    app.state.reply_consumer = consumer",
-      "    async for msg in consumer:",
-      "        data = msg.value",
-      "        fut = PENDING.get(data.get(\"request_id\"))",
-      "        if fut is not None and not fut.done():",
-      "            fut.set_result(data)            # wakes up the waiting handler",
+      "class InventoryServicer(inventory_pb2_grpc.InventoryServiceServicer):",
+      "    async def Reserve(self, request, context):",
+      "        pool = await db.get_pool()",
+      "        # atomic check-and-decrement: only succeeds if enough on hand",
+      "        remaining = await pool.fetchval(",
+      "            \"UPDATE stock SET on_hand = on_hand - $2 \"",
+      "            \"WHERE sku = $1 AND on_hand >= $2 RETURNING on_hand\",",
+      "            request.sku, request.quantity)",
+      "        if remaining is None:",
+      "            return inventory_pb2.ReserveResponse(reserved=False)",
+      "        reservation_id = str(uuid.uuid4())",
+      "        await pool.execute(\"INSERT INTO reservations ...\", reservation_id, ...)",
+      "        return inventory_pb2.ReserveResponse(reserved=True,",
+      "            reservation_id=reservation_id, remaining=remaining)",
     ],
-    "Started in the app's lifespan; one consumer resolves every in-flight request's future.",
-    { fontSize: 11 });
+    "Contracts are shared protos at proto/mesh/…; the gRPC server instrumentation continues the order's trace.",
+    { fontSize: 10 });
   addNotes(s,
-    "This background task is the only thing that resolves the futures the handler parks. For every reply it looks up the waiting future by request_id and sets its result, which wakes the suspended handler. " +
-    "The not fut.done() guard avoids setting a result twice if a duplicate reply ever arrives. " +
-    "Starting it once in lifespan rather than per request means a single consumer serves every in-flight request in this process, sharing the same event loop as the handlers. " +
-    "This is the close of the loop opened on the previous slide — handler parks and awaits, consumer matches and resolves.");
-}
-
-// ── 3e. The worker (code) ────────────────────────────────────────────────────
-{
-  const s = S();
-  addCodeSlide(s, "FOUNDATIONS · THE DEMO APP", "The worker — where the work happens", "python · aiokafka + asyncpg",
-    [
-      "async for msg in consumer:",
-      "    data = msg.value",
-      "    request_id = data[\"request_id\"]",
-      "    n = int(data[\"n\"])",
-      "    multiplier = await db.get_multiplier()        # SELECT config",
-      "    result = (n * (n + 1) // 2) * multiplier       # triangular number",
-      "    await db.record_job(request_id, n, result)    # INSERT a jobs row",
-      "    await producer.send_and_wait(",
-      "        settings.replies_topic, key=request_id,",
-      "        value={\"request_id\": request_id, \"result\": result})",
-    ],
-    "A read-then-write Postgres round trip, then a reply keyed by the same request_id.",
-    { fontSize: 11 });
-  addNotes(s,
-    "The worker consumes a job, does a read-then-write round trip against Postgres — a SELECT for the multiplier config, an INSERT to record the job — computes the triangular number n·(n+1)/2 times that multiplier, and publishes the reply keyed by the same request_id. " +
-    "The database calls are deliberate, not incidental: they give the later chapters real database spans to capture, and a place to show that a span from the worker and a span from Postgres can belong to one trace. " +
-    "The computation itself is intentionally trivial — a stand-in for real work, present so there is something to trace.");
+    "Two things to land. First, the single conditional UPDATE … WHERE on_hand >= qty RETURNING on_hand both checks and decrements stock atomically — no read-then-write race — and returns NULL when there isn't enough, which is how Reserve signals failure. A reservation row keyed by order_id makes a retry idempotent. " +
+    "Second: this runs in a DIFFERENT process from the order service, yet because the gRPC server is auto-instrumented and the order service injected context on the wire, these spans and their Postgres children land under the order's trace. The proto that defines this service lives once at the repo top level and is compiled into the image.");
 }
 
 // ── 3f. The fragile bits ─────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO APP", "The fragile bits, named not hidden");
+  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "The fragile bits, named not hidden");
   addBullets(s, [
-    "Topics auto-create in this demo (KAFKA_AUTO_CREATE_TOPICS_ENABLE=true); a production setup would create them explicitly with chosen partition counts.",
-    "PENDING lives in one process, so the request/reply trick assumes the API is not running as multiple replicas behind a load balancer — fine for a laptop demo, not for a fleet.",
-    "The computation is intentionally trivial — a stand-in for real work, present so there is something to trace, not because triangular numbers are interesting.",
-  ], { fontSize: 17 });
+    "Every domain shares one Postgres database (meshdb) for laptop simplicity; a real data mesh would isolate a store per domain. The observability story — a Postgres span per service under one trace — is identical either way.",
+    "The payment ceiling and the catalog unit price are hardcoded so demos are deterministic: a fixed amount authorizes, a large quantity declines, on demand.",
+    "Kafka auto-creates the order.placed topic; production would create topics explicitly with chosen partition counts. None of these change the spans or metrics — they are scope cuts, stated out loud.",
+  ], { fontSize: 16 });
   addNotes(s,
-    "Naming the simplifications out loud buys credibility and heads off the 'but what about…' questions. None of these change the observability story; they are scope cuts to keep a laptop demo a laptop demo. " +
-    "If asked how you would make PENDING multi-replica-safe: you would push the correlation into a shared store or use a reply topic keyed per instance — but that is a distributed-systems talk, not this one. Keep the focus on telemetry.");
+    "Naming the simplifications buys credibility and heads off the 'but what about…' questions. The one most likely to be challenged is the shared database — be ready to say that per-domain stores are the data-mesh ideal but co-locating them changes nothing about the telemetry, which is what this talk is about. Keep the focus on observability.");
 }
 
 // ── 3g. Run it — it's opaque ─────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS · THE DEMO APP", "It works — and it is completely opaque");
+  addContentTitle(s, "FOUNDATIONS · THE DEMO MESH", "It works — and it is completely opaque");
   addBullets(s, [
-    "cd examples/01-app-no-telemetry && ./demo.sh — builds the app image, brings the stack up, waits for healthy, and posts one request.",
-    "Expect {\"request_id\":\"…\",\"n\":100,\"result\":5050}. Cross-check the database directly: a jobs row whose result matches proves the request travelled the full chain and did not short-circuit.",
-    "Then open Grafana and look for this request. There is nothing there. The app is healthy and completely opaque — exactly the starting point the rest of the talk fixes.",
-  ], { fontSize: 17 });
+    "cd examples/01-mesh-no-telemetry && ./demo.sh — brings the whole stack up in Podman with telemetry disabled and places one order.",
+    "Expect a confirmed order in the response, a shipment row, and a notification log — proof the request travelled the full chain across REST, gRPC, Kafka, and Postgres.",
+    "Then open Grafana and look for it. There is nothing there. Six services just collaborated to fulfil that order and you cannot see any of it — exactly the opacity the rest of the talk removes.",
+  ], { fontSize: 16 });
   addCaption(s, "This is the baseline: no telemetry. Every later demo is measured against this opacity.");
   addNotes(s,
-    "This is the emotional pivot of the foundation. The service works perfectly and tells you nothing. Run the demo, show the clean 5050 response, then pull up an empty Grafana and let the silence land. " +
-    "The cross-check via psql matters as a habit we will repeat: never trust the HTTP 200 alone — confirm the side effect. A jobs row with result 5050 for n=100 is the proof the whole chain ran. " +
-    "Demo 1 ships with OTEL_SDK_DISABLED=true on purpose; the next part turns the SDK on and the same request lights up.");
+    "The emotional pivot of the foundation: the system works perfectly and tells you nothing. Run it, show the confirmed response, then pull up an empty Grafana and let the silence land. " +
+    "Demo 1 ships with OTEL_SDK_DISABLED=true on purpose; the next part flips one variable and the same request lights up.");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+divider("THE THREE SIGNALS", "Traces, metrics, logs — and the thread that ties them",
+  "Auto-instrumentation · Metrics · Logs · Custom spans across Kafka",
+  "This part turns the SDK on and adds one signal at a time to the exact same code, ending by carrying trace context across the Kafka hop so the async work rejoins the trace.");
+
+// ── 4. Auto-instrumentation — diagram fig-04 ─────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE THREE SIGNALS · AUTO-INSTRUMENTATION",
+    "Auto, custom, and the hybrid you actually ship",
+    "fig-04-instrumentation-layers",
+    "Figure 4.1 — Auto-instrumentation gives breadth for free; custom spans give depth where it matters; real systems run both.");
+  addNotes(s,
+    "Frame the three columns. Auto-instrumentation is breadth for free: turn it on and FastAPI, gRPC, and asyncpg emit spans with no code change. Custom instrumentation is depth where it matters: you open spans for the work the libraries can't see. The hybrid is what every real service is — and the one gotcha is the occasional duplicate span when auto and custom overlap. " +
+    "This part starts with the free breadth, then earns the depth in the Kafka chapter.");
+}
+
+// ── 4b. setup() (code) ───────────────────────────────────────────────────────
+{
+  const s = S();
+  addCodeSlide(s, "THE THREE SIGNALS · AUTO-INSTRUMENTATION", "Turn it on once, in the shared library", "python · obs.otel.setup",
+    [
+      "resource = Resource.create({",
+      "    \"service.name\": cfg.service_name,    # the most important attribute",
+      "    \"service.version\": cfg.service_version,",
+      "    \"deployment.environment\": cfg.environment})",
+      "",
+      "tracer_provider = TracerProvider(resource=resource)",
+      "tracer_provider.add_span_processor(",
+      "    BatchSpanProcessor(OTLPSpanExporter(f\"{cfg.endpoint}/v1/traces\")))",
+      "trace.set_tracer_provider(tracer_provider)",
+      "# … MeterProvider + LoggerProvider wired the same way …",
+      "",
+      "AsyncPGInstrumentor().instrument()        # every query → a span",
+      "GrpcAioInstrumentorClient().instrument()  # inject context on the wire",
+      "GrpcAioInstrumentorServer().instrument()  # extract it on arrival",
+    ],
+    "service.name is what lets Grafana say 'this span happened in payment'; BatchSpanProcessor keeps export off the critical path.",
+    { fontSize: 10 });
+  addNotes(s,
+    "Three beats. The resource is the identity stamped on every signal — service.name is the single most important attribute in the whole system, which is why we pass it explicitly rather than trust a default. The Batch processor ships spans on a background thread, so observing the service never slows the request. " +
+    "And the three instrument() calls are the whole of 'auto': each patches its library process-wide, so the order handler we saw earlier — with no tracing in it — now produces gRPC and Postgres spans automatically. FastAPI is the exception, instrumented against the app object via instrument_fastapi(app).");
+}
+
+// ── 4c. The boundary where it stops ──────────────────────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE THREE SIGNALS · AUTO-INSTRUMENTATION", "One trace for free — until Kafka");
+  addBullets(s, [
+    "Place an order, open Tempo: one trace spans the POST /orders server span, the inventory and payment gRPC client+server spans, and every asyncpg query — none of it written by hand.",
+    "Context crosses HTTP and gRPC because the instrumented client writes a traceparent header and the server reads it — the W3C Trace Context standard, propagated automatically.",
+    "But the shipping and notification work shows up as separate, parentless traces. A Kafka message has no one filling in a traceparent for you, so the chain breaks at the broker. Demo 2 runs with propagation off to make that visible; Chapter 7 fixes it.",
+  ], { fontSize: 16 });
+  addNotes(s,
+    "This is the honest edge of auto-instrumentation and the hook for the rest of the part. Show the beautiful free trace first, then deliberately point at what's missing: the consumers are off on their own. Resist the urge to hand-wave — name why (no instrumented client owns the Kafka publish header) so the fix in Chapter 7 feels inevitable rather than magic.");
+}
+
+// ── 5. Metrics ───────────────────────────────────────────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE THREE SIGNALS · METRICS", "RED, mostly for free — and exemplars back to traces");
+  addBullets(s, [
+    "RED — Rate, Errors, Duration — is the default question set for a request-driven service: is it busy, is it broken, is it slow? The HTTP and gRPC auto-instrumentation emits most of it already, labelled by route, method, and status.",
+    "Metrics are periodic aggregates, not per-event records: a MeterProvider with a PeriodicExportingMetricReader samples in-memory aggregations and exports them on an interval — the fundamental difference from a span.",
+    "Exemplars are the payoff: a sample trace_id attached to a histogram bucket when the measurement was taken inside a span. Grafana renders them as dots on the latency graph; click one to open the actual slow trace in Tempo.",
+  ], { fontSize: 16 });
+  addCaption(s, "Cross-check: the request count per minute should match the number of order traces for the same window.");
+  addNotes(s,
+    "The single most valuable idea on this slide is exemplars — they turn 'p99 spiked at 14:32' from a dead end into 'here is a request that was actually slow.' That only works because the same SDK with the same resource emits both signals, so the ids line up. " +
+    "Mention that domain questions ('how many orders declined for payment?') need a custom Counter you define with obs.otel.meter(); the transport metrics cover RED but not the business.");
+}
+
+// ── 6. Logs (code) ───────────────────────────────────────────────────────────
+{
+  const s = S();
+  addCodeSlide(s, "THE THREE SIGNALS · LOGS", "Stamp every line with the active trace", "python · obs.logging",
+    [
+      "class TraceContextFilter(logging.Filter):",
+      "    def filter(self, record):",
+      "        span = trace.get_current_span()",
+      "        ctx = span.get_span_context() if span else None",
+      "        if ctx and ctx.is_valid:",
+      "            record.trace_id = format(ctx.trace_id, \"032x\")",
+      "            record.span_id = format(ctx.span_id, \"016x\")",
+      "        else:",
+      "            record.trace_id = record.span_id = \"-\"",
+      "        return True   # a JsonFormatter then renders these as fields",
+    ],
+    "JSON + the trace_id on every record = a log in Loki links to its trace in Tempo, and back. The ids are the join key.",
+    { fontSize: 11 });
+  addNotes(s,
+    "Two decisions make logs correlatable: structure (JSON, so trace_id is a queryable field, not buried in a string) and the trace context on every record. A logging Filter is the right hook because it runs at log time, so inside a request the ids are the request's ids and outside one they're '-'. " +
+    "The hex formatting (032x / 016x) is the canonical form Tempo expects, so the value in Loki matches the trace exactly. Services log to stdout; the collector routes it to Loki, so the service stays ignorant of the backend.");
+}
+
+// ── 7. Custom spans across Kafka — diagram fig-07 ────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE THREE SIGNALS · CUSTOM SPANS",
+    "Carrying the trace across the Kafka boundary",
+    "fig-07-context-propagation",
+    "Figure 7.1 — gRPC propagates context for you; across Kafka you inject it into the message headers and extract it in the consumer.");
+  addNotes(s,
+    "This is the climax of the talk and the technique that generalises: anywhere context doesn't propagate automatically — a queue, a batch job, a custom protocol — you do exactly this. Walk the figure: the producer injects the active context into the Kafka message headers; the consumer extracts it and opens its processing span with that context as the parent. " +
+    "The same traceparent the gRPC hop used, just placed and read by hand because no library does it for a Kafka message.");
+}
+
+// ── 7b. inject / extract / consume (code) ────────────────────────────────────
+{
+  const s = S();
+  addCodeSlide(s, "THE THREE SIGNALS · CUSTOM SPANS", "Inject on publish, extract on consume", "python · obs.kafka_propagation",
+    [
+      "# producer side — inject the active context into Kafka headers",
+      "def inject_headers(existing=None):",
+      "    carrier = {}; propagate.inject(carrier)   # writes 'traceparent'",
+      "    return [(k, v.encode()) for k, v in carrier.items()]",
+      "",
+      "# consumer side — rebuild the context, then parent the span to it",
+      "ctx = extract_context(msg.headers)",
+      "with otel.tracer().start_as_current_span(",
+      "        \"shipping.handle_order_placed\", context=ctx):",
+      "    await create_shipment(order)   # this span is now a child of the order",
+    ],
+    "context=ctx is the entire trick: without it the consumer starts a new trace; with it, it joins the order's.",
+    { fontSize: 11 });
+  addNotes(s,
+    "Slow down on context=ctx — it is the whole chapter in one argument. propagate.inject is the same call the HTTP and gRPC instrumentors make internally; we do it explicitly only because no library will do it for a Kafka message. extract_context returns a context value, not an active one; passing it as context= to start_as_current_span is what makes the consumer's span a child of the order service's publish span, in a different process, reached asynchronously. " +
+    "The asyncpg span for create_shipment then nests under that automatically. Two lines per consumer — extract, then pass context= — and the async hop is whole.");
+}
+
+// ── 7c. GraphQL resolver spans ───────────────────────────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE THREE SIGNALS · CUSTOM SPANS", "Same API, a second use: GraphQL shape");
+  addBullets(s, [
+    "The review service uses the same start_as_current_span call for a different reason — not to cross a boundary, but to make one opaque POST /graphql legible.",
+    "Each resolver opens a span (review.resolve_order, review.resolve_reviews), so a GraphQL query shows up as a resolver tree with its Postgres children — not a single span you can't see inside.",
+    "Once you can open a span deliberately, you can give any custom work — resolvers, batch steps, scheduled jobs — the structure it deserves. That is the general lesson under the specific Kafka fix.",
+  ], { fontSize: 16 });
+  addCaption(s, "Run examples/05-spans-across-kafka and compare the trace to Demo 2: the consumers are now on it.");
+  addNotes(s,
+    "Close the part by generalising: start_as_current_span is not a Kafka tool, it is THE tool for making invisible work visible — the Kafka consumers and the GraphQL resolvers are two faces of the same move. End on the side-by-side: Demo 2's trace stopped at the broker; Demo 5's runs all the way through shipping and notification. Same code, one env var, the whole picture.");
 }
 
 // ── Closing / roadmap ────────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "FOUNDATIONS", "Where this goes next");
+  addContentTitle(s, "THE THREE SIGNALS", "Where this goes next");
   addBullets(s, [
-    "Next part — the three signals: auto-instrumentation produces traces without changing a line of this code; then metrics, then logs stamped with the trace_id, then custom spans carried across the Kafka hop.",
-    "After that — the pipeline: move sampling and routing into the Collector, add continuous profiling, and land on the correlated view where one click pivots metric → trace → log.",
-    "Foundation iteration (r0.1) ships Sections 0–3, the demo app, the stack, and the six shared diagrams. Demos 2–9 land in r1.0 and r2.0; see the iteration plan in the repo.",
-  ], { fontSize: 17 });
+    "You now have the full correlation story on the demo mesh: traces across REST and gRPC for free, metrics with exemplars, logs stamped with the trace_id, and custom spans that carry the trace across Kafka and shape the GraphQL read path.",
+    "Next part — the pipeline: move sampling and routing into the Collector, add continuous profiling, and land on the correlated view where one click pivots metric → trace → log.",
+    "Iteration r1.0 ships Sections 0–7, the six-service mesh, the shared protos and obs library, and Demos 1–5. The remaining pipeline demos land in r2.0; see the iteration plan in the repo.",
+  ], { fontSize: 16 });
   addNotes(s,
-    "Close by re-walking the arc so the audience knows what they have and what is coming. The foundation gives them the model and the un-instrumented service; the payoff is the correlated view at the very end. " +
-    "Be honest about iteration state: this deck and tutorial are the foundation cut. The remaining demos are authored against the target versions but not yet run end-to-end here — they are marked unverified, and a live rehearsal against the real stack is the next milestone. " +
-    "Point people at the repo: the tutorial site mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
+    "Re-walk the arc so the audience knows what they hold and what's coming. The foundation gave them the mesh and the model; this part gave them the three correlated signals; the payoff — the one-click correlated view — is the final part. " +
+    "Be honest about iteration state: r1.0 is authored against the target versions but not yet run end-to-end here, so it ships marked unverified, and a live rehearsal against the real stack is the next milestone. Point people at the repo: the tutorial mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
 }
 
 pres.writeFile({ fileName: OUT })

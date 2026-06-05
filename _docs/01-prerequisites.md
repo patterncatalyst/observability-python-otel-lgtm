@@ -16,7 +16,13 @@ The demos target **Python 3.14** with **Poetry** for dependency management, and
 they run on **Podman** with `podman compose` — not Docker. Podman is rootless by
 default and is the engine on the platforms this talk targets (current Fedora and
 current macOS via the Podman machine). On macOS, give the Podman machine at
-least 4 GB of memory; the full stack uses roughly 3 GB across all its services.
+least 6 GB of memory; the full stack uses roughly 3.5 GB across all its services.
+
+Optional, only for the load and test tooling under `tools/`: [`hey`](https://github.com/rakyll/hey)
+to drive the REST edge, [`ghz`](https://ghz.sh) to drive the gRPC services, and
+Postman if you prefer a GUI to the curl scripts. The gRPC protos are compiled
+into each service image during the build (via `grpcio-tools`), so you do not need
+a protoc toolchain installed to run the demos.
 
 <div class="callout callout--warn">
   <p class="callout__title">Python 3.14 and auto-instrumentation</p>
@@ -58,7 +64,9 @@ Collector" confusion.
 | Tempo | `http://localhost:3200` | `http://lgtm:3200` | trace storage and query |
 | Mimir | `http://localhost:9090` | `http://lgtm:9090` | metric storage and query |
 | Loki | `http://localhost:3100` | `http://lgtm:3100` | log storage and query |
-| API | `http://localhost:8080` | `http://api:8080` | the demo service |
+| Order (REST) | `http://localhost:8080` | `http://order:8080` | external edge: place/read orders |
+| Review (GraphQL) | `http://localhost:8081/graphql` | `http://review:8081` | external read edge |
+| Kafka UI | `http://localhost:8090` | — | inspect topics and the `order.placed` event |
 
 ## A house-style choice: OTLP over HTTP
 

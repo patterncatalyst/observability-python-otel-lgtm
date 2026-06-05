@@ -24,13 +24,33 @@ authority; this page tracks the order of build.
 - [x] Slide deck through §3, embedding the shared figures.
 - [x] Plans: this roadmap and the reconciliation plan.
 
-## r1.0 — The three signals
+## r1.0 — The three signals (this iteration)
 
-- [ ] §4 Auto-instrumentation + Demo 2 (traces for free in Tempo). Resolve the Python 3.14 wheel question first.
-- [ ] §5 Metrics → Mimir + Demo 3 (RED + a custom business metric, a Grafana panel).
-- [ ] §6 Logs → Loki + Demo 4 (structured logs, trace_id/span_id injection, log↔trace pivot).
-- [ ] §7 Custom instrumentation + Demo 5 (manual spans; trace context across both Kafka hops). Uses Fig 7.1.
-- [ ] Deck sections for §4–§7.
+**Architecture pivot.** r1.0 replaced the single FastAPI+worker app with a
+six-service data-mesh-style application (order, inventory, payment, shipping,
+notification, review) so the trace can be examined across REST, gRPC, GraphQL,
+Kafka, and Postgres in one request. The objects mirror the
+[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python);
+the Kubernetes/Helm/Istio layer is deliberately swapped for Podman compose — this
+is an OpenTelemetry talk. The r0.1 `app/` and its example were removed.
+
+- [x] Scrubbed all eBPF/Rust/Aya/Fedora-KVM/bpftool/bcc template language from
+  the site scaffold (index, includes, layout favicon, CSS, diagram engine).
+- [x] Shared protos at the repo top level (`proto/mesh/...`) for the gRPC hops,
+  compiled by `scripts/gen-protos.sh`.
+- [x] Shared `obs` library (`services/common/`): OTel bootstrap, Kafka context
+  propagation, asyncpg pool, trace-stamped JSON logging.
+- [x] Six services under `services/` + one parameterized `services/Containerfile`.
+- [x] Rewrote the stack: compose with the six services + LGTM + Postgres + Kafka
+  + Kafka-UI; multi-domain schema; sampling config retargeted to `/orders`.
+- [x] Tooling: curl scripts, a Postman collection, `hey` (REST) and `ghz` (gRPC)
+  load drivers.
+- [x] §3 rewritten for the mesh; §4 Auto-instrumentation, §5 Metrics, §6 Logs,
+  §7 Custom spans across Kafka written under "The three signals."
+- [x] Demos 1–5 as runnable examples (no-telemetry baseline; auto-instrumentation
+  with the Kafka break; metrics; logs; spans across Kafka with the fix).
+- [x] New `fig-03-service-topology`; deck extended through §7; built as
+  `presentations/otel-lgtm-python-r1.0.pptx`.
 
 ## r2.0 — The pipeline
 

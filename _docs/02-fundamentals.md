@@ -23,7 +23,8 @@ A **trace** answers *where did the time go, and what happened along the way*. It
 is a tree of spans — one span per unit of work — each with a start, a duration,
 and attributes. Every span in a trace shares one `trace_id`; each span has its
 own `span_id` and points at its parent. For our demo, one trace should span the
-HTTP request, the Kafka publish, the worker, the Postgres calls, and the reply.
+HTTP request, both gRPC calls, the Postgres writes, the Kafka publish, and the
+shipping and notification consumers that react to it.
 
 A **metric** answers *how much, how often, how slow — in aggregate*. Metrics are
 cheap numbers aggregated over time: request rate, error rate, duration
@@ -69,10 +70,10 @@ back to a representative trace — onto a metric. That is what turns "error rate
 up" into "click here for the trace, and here are its logs."
 
 The hard part, and the part most material skips, is keeping that context alive
-across a boundary that is not a function call. When our API hands work to the
-worker over Kafka, the worker runs in a different process with no shared call
-stack. Unless the trace context travels *with the message*, the worker starts a
-brand-new trace and the chain breaks in the middle. Carrying it across that hop
+across a boundary that is not a function call. When the order service publishes
+`order.placed` to Kafka, the shipping and notification consumers run in different
+processes with no shared call stack. Unless the trace context travels *with the
+message*, each consumer starts a brand-new trace and the chain breaks in the middle. Carrying it across that hop
 is the job of the custom-instrumentation chapter; for now, hold onto the idea
 that a single `trace_id` flowing through every hop is the foundation everything
 else is built on.

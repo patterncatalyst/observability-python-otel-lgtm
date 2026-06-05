@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "payment"
+version = "0.1.0"
+description = "Payment service — gRPC authorization."
+authors = ["Robert Sedor"]
+packages = [{ include = "payment" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.15"
+obs = { path = "../common", develop = true }
+grpcio = "^1.68.0"
+asyncpg = "^0.30.0"
+
+[tool.poetry.scripts]
+serve = "payment.server:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

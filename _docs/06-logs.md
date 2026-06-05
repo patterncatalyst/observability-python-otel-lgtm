@@ -1,0 +1,105 @@
+---
+title: "Logs: stamped with the trace"
+order: 6
+part: "The three signals"
+description: "Structured JSON logs carry the active trace_id and span_id, so a line in Loki links to its trace in Tempo and back — the ids are the join key."
+duration: 12 minutes
+---
+
+Logs are the signal teams already have, and usually the least useful, because a
+log line on its own tells you *what* happened but not *which request* it belonged
+to. The fix is small and high-leverage: stamp every line with the active
+`trace_id` and `span_id`. Once you do, a log in Loki links to its trace in Tempo,
+a span in Tempo links to its logs, and the three signals finally describe one
+thing instead of three disconnected ones. That join key is the whole idea of
+this chapter.
+
+The code is in `examples/04-logs/`; the logging setup is
+`services/common/obs/logging.py`.
+
+## Why structured, and why the ids
+
+Two decisions make logs correlatable. First, **structure**: emit JSON, not free
+text, so fields like `trace_id` are queryable rather than buried in a string
+Grafana would have to parse. Second, **the trace context on every record**: the
+ids that identify the current span, written as fields, so Loki's
+derived-field configuration can turn `trace_id` into a link to Tempo. Neither is
+useful without the other — structure with no trace id is just tidy logs; the id
+with no structure is unsearchable.
+
+## How the code works
+
+`obs.logging.configure()` is three moving parts: a filter that adds the ids, a
+formatter that renders JSON, and the handler wiring that puts them on the root
+logger.
+
+**The filter reads the active span.** A logging `Filter` runs on every record
+before it is formatted, which is exactly the hook we want — it lets us enrich the
+record with whatever is true *at log time*:
+
+```python
+class TraceContextFilter(logging.Filter):
+    def filter(self, record):
+        span = trace.get_current_span()
+        ctx = span.get_span_context() if span else None
+        if ctx and ctx.is_valid:
+            record.trace_id = format(ctx.trace_id, "032x")
+            record.span_id = format(ctx.span_id, "016x")
+        else:
+            record.trace_id = "-"
+            record.span_id = "-"
+        return True
+```
+
+`get_current_span()` reads the span from the current context — the same context
+the SDK set when the request span started — so inside a request handler the ids
+are the request's ids, and outside one they are `-`. The hex formatting (`032x`
+for the 128-bit trace id, `016x` for the 64-bit span id) is the canonical
+representation Tempo expects, so the value in the log matches the value in the
+trace exactly. Returning `True` means "keep this record" — a filter can also drop
+records, but here we only use it to enrich.
+
+**The formatter renders JSON.** `JsonFormatter.format` builds a dict — timestamp,
+level, logger name, message, and the two ids the filter attached — and
+`json.dumps` it. Because the ids were set as record attributes, they are just
+fields like any other; if an exception is attached, the formatted traceback goes
+in too. One line of JSON per log event, with the trace id as a first-class field.
+
+**The wiring puts it on stdout.** `configure()` builds a `StreamHandler` to
+stdout, attaches the formatter and the filter, and replaces the root logger's
+handlers with it so every module's logger inherits the behaviour. Stdout is
+deliberate: in the bundled stack the collector picks up container stdout and
+routes it to Loki, so the service does not need to know anything about Loki — it
+just prints JSON, and the platform does the rest. A service calls
+`obslog.configure()` once at startup, before `otel.setup()`, and from then on
+every `log.info(...)` anywhere in that service is structured and trace-stamped.
+
+## Build, run, observe
+
+```bash
+cd examples/04-logs && ./demo.sh
+```
+
+Place an order and the script tails the order service logs — you will see JSON
+lines each carrying a `trace_id`. In Grafana > Explore > Loki, filter
+`{service_name="order"}`, expand a line, and use the `trace_id` link to jump into
+Tempo. From a span there, pivot back to its logs. Same id, both directions.
+
+## What you learned
+
+- Correlatable logs need two things: JSON structure and the active
+  `trace_id`/`span_id` on every record.
+- A logging `Filter` is the right place to read the current span and enrich the
+  record at log time; a `Formatter` renders it as queryable JSON.
+- Logging to stdout lets the collector route to Loki, so the service stays
+  ignorant of the backend — and the trace id makes logs and traces link both ways.
+
+Next, *Custom spans and the Kafka boundary* — the climax — closes the gap
+Chapter 4 left open and makes the asynchronous consumers part of the same trace.
+
+---
+
+*Verification status: <span class="status status--unverified">unverified</span>.
+A real run must confirm order logs are JSON with a populated `trace_id` during a
+request, the value matches the trace in Tempo, and Loki's derived field links to
+it. Collector-to-Loki stdout routing depends on the otel-lgtm image's defaults.*

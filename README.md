@@ -1,17 +1,21 @@
 # 🔭 Observability for Python with OpenTelemetry & the Grafana LGTM Stack
 
 A demo-driven talk and companion tutorial. You instrument a realistic Python
-service — **FastAPI → Kafka → worker → Postgres → Kafka → FastAPI** — with
-**OpenTelemetry**, then ship traces, metrics, and logs into a self-hosted
-**Grafana LGTM** stack (**L**oki, **G**rafana, **T**empo, **M**imir) and
-correlate all three signals across one request.
+service mesh — six domain services (**order, inventory, payment, shipping,
+notification, review**) where one `POST /orders` fans out across **REST**, **gRPC**,
+**GraphQL**, **Kafka**, and **Postgres** — with **OpenTelemetry**, then ship
+traces, metrics, and logs into a self-hosted **Grafana LGTM** stack (**L**oki,
+**G**rafana, **T**empo, **M**imir) and correlate all three signals across one
+request. The domain objects mirror the
+[data-mesh reference architecture](https://github.com/patterncatalyst/datamesh-reference-arch-python).
 
 Everything runs locally with a single `podman compose up`. No SaaS, no
-API keys, no cloud account — just the OSS stack on your laptop.
+API keys, no cloud account, and no Kubernetes — just the OSS stack on your
+laptop. This is an OpenTelemetry talk, not a Kubernetes one.
 
-> **Status: foundation iteration (r0.1).** Sections 0–3, the demo app, the
-> stack, and all six shared diagrams are authored. Demos 2–9 and the
-> three-signals / pipeline deep-dives land in later iterations — see
+> **Status: three-signals iteration (r1.0).** Sections 0–7, the six-service
+> mesh, the shared protos and `obs` library, the stack, and Demos 1–5 are
+> authored. The pipeline deep-dives (§8–§11, Demos 6–9) land in r2.0 — see
 > [`_plans/iteration-plan.md`](_plans/iteration-plan.md). Every demo currently
 > ships marked **`unverified`**: authored against the target versions but not
 > yet executed end-to-end in this environment (no container runtime here).
@@ -26,9 +30,12 @@ This repository is four deliverables that share one source of truth:
 | Path | What it is |
 |------|------------|
 | [`_docs/`](_docs/) | The **tutorial site** chapters (Jekyll). Numbered, part-grouped, served as a static site. |
-| [`deck/`](deck/) | The **slide deck** — a 1.5–3 hr presentation built with `pptxgenjs`. |
-| [`app/`](app/) | The **demo application** — shared FastAPI + worker source, packaged with Poetry, containerized on UBI. |
-| [`stack/`](stack/) | The **observability stack** — `compose.yaml` for Grafana LGTM, the OTel Collector, Postgres, and Kafka. |
+| [`deck/`](deck/) | The **slide deck tooling** — `deck.js` source + the `pptxgenjs` design system, shared assets, and diagram PNGs. |
+| [`presentations/`](presentations/) | The **built decks** (`.pptx`), one per talk/cut — committed deliverables built from `deck/`. |
+| [`proto/`](proto/) | The **shared gRPC contracts** (`proto/mesh/...`), at the top level so every service compiles one copy of the truth. |
+| [`services/`](services/) | The **six domain services** plus the shared `obs` library (`services/common/`) and one parameterized `Containerfile`. |
+| [`stack/`](stack/) | The **observability stack** — `compose.yaml` for Grafana LGTM, the OTel Collector, Postgres, and Kafka, plus the six services. |
+| [`tools/`](tools/) | **curl** scripts, a **Postman** collection, and **hey**/**ghz** load drivers to exercise the running mesh. |
 | [`examples/`](examples/) | One thin **runnable demo** per chapter; each drives the shared stack. |
 | [`assets/diagrams/`](assets/diagrams/) | The **shared diagrams** — `.svg` + `.excalidraw`, generated from `scripts/diagrams.py`. |
 
@@ -41,45 +48,50 @@ One spec → identical figures in the book and the slides.
 
 ## Quick start
 
-### Run the stack and the demo app
+### Run the stack and the demo mesh
 
 ```bash
 # from the repo root
 cd stack
-podman compose up -d          # Grafana LGTM + Collector + Postgres + Kafka + app
+podman compose up --build -d   # Grafana LGTM + Collector + Postgres + Kafka + 6 services
 ```
 
 Then open:
 
 - **Grafana** — <http://localhost:3000> (anonymous admin, no login)
-- **Demo API** — <http://localhost:8080/health>
-- **Kafka UI** — <http://localhost:8085>
+- **Order API (REST)** — <http://localhost:8080/health>
+- **Review API (GraphQL)** — <http://localhost:8081/graphql>
+- **Kafka UI** — <http://localhost:8090>
 
-Drive a request through the whole async round trip:
+Place an order — one request that fans out across REST, gRPC, Kafka, and Postgres:
 
 ```bash
-curl -s -X POST http://localhost:8080/compute \
+curl -s -X POST http://localhost:8080/orders \
   -H 'content-type: application/json' \
-  -d '{"n": 100}'
-# => {"request_id": "...", "n": 100, "result": 5050}
+  -d '{"customer_id": "cust-42", "sku": "WIDGET-001", "quantity": 1}'
+# => {"order_id": "...", "status": "confirmed", "amount_cents": 1999}
 ```
 
-Tear down:
+More ways to drive it — curl scripts, a Postman collection, and `hey`/`ghz` load
+generators — are in [`tools/`](tools/). Tear down:
 
 ```bash
 podman compose down -v
 ```
 
-Each chapter has a matching driver under `examples/NN-*/` with `demo.sh`
-(`up` / `drive` / `down` / `clean`) and a `test.sh` assertion.
+Each chapter has a matching driver under `examples/NN-*/` with `demo.sh` and a
+`test.sh` assertion.
 
 ### Build the slide deck
 
 ```bash
 cd deck
 export NODE_PATH=$(npm root -g)
-node deck.js                  # writes the .pptx
+node deck.js                  # → ../presentations/otel-lgtm-python-r1.0.pptx
 ```
+
+Built decks land in [`presentations/`](presentations/) and are committed. See
+that folder's README for adding a second deck (e.g. a workshop cut).
 
 ### Serve the tutorial site locally
 
@@ -98,27 +110,30 @@ bash scripts/render_pngs.sh       # → deck/png/*.png  (needs LibreOffice)
 
 ---
 
-## The demo application
+## The demo mesh
 
-A single request makes a full asynchronous round trip, which is what makes it a
-good observability teaching example — context has to propagate across a message
-broker, not just an in-process call:
+One `POST /orders` fans out across five protocols and six services, which is what
+makes it a good observability teaching example — trace context has to survive
+gRPC calls, an asynchronous Kafka hop, and database round trips, not just an
+in-process call:
 
 ```
-client ──HTTP──▶ FastAPI ──produce──▶ Kafka (requests)
-                                            │
-                                            ▼
-                              worker ──query──▶ Postgres
-                                            │
-                  FastAPI ◀──Kafka (replies)─┘
-   client ◀──HTTP── (correlated by request_id)
+client ──REST──▶ order ──gRPC──▶ inventory  (reserve stock)
+                   │   ──gRPC──▶ payment    (authorize)
+                   │   ──SQL──▶  Postgres    (persist)
+                   └─produce──▶ Kafka (order.placed)
+                                   ├──▶ shipping     (consume → shipment)
+                                   └──▶ notification (consume → notify)
+client ──GraphQL──▶ review  (read orders + reviews)
 ```
 
-The API holds each caller's request open against a `Future` keyed by
-`request_id`, publishes to the `requests` topic, and resolves the future when
-the matching reply arrives on the `replies` topic. The worker does the actual
-compute (a triangular number, scaled by a multiplier it reads from Postgres),
-records the job, and publishes the reply. See
+The order service reserves stock and authorizes payment over gRPC, persists the
+order, and publishes `order.placed`; shipping and notification consume it
+asynchronously; review serves a GraphQL read path. gRPC and Postgres are
+auto-instrumented, so those spans join the request's trace for free — the one hop
+that needs explicit context propagation is Kafka, which is the climax of the
+talk. The gRPC contracts are shared protos under [`proto/`](proto/); the shared
+`obs` library under `services/common/` carries all the instrumentation. See
 [`_docs/03-demo-app.md`](_docs/03-demo-app.md) for the call-by-call walkthrough.
 
 ---
@@ -129,6 +144,22 @@ records the job, and publishes the reply. See
 - **Python 3.14** target for the app (the env here is 3.12; `pyproject.toml` allows `>=3.12,<3.15` so it installs on the current UBI Python image while the 3.14 image tag is confirmed — tracked as an open question in the reconciliation plan)
 - **Node.js** (for building the deck)
 - **Ruby + Bundler** (only to serve the site locally; GitHub Pages builds it for you)
+
+---
+
+## Shipping changes
+
+Every push (to any branch) triggers the Actions workflow, which builds the site;
+pushes to `main` also deploy it to Pages. The going-forward loop is stage →
+commit → push → watch the run:
+
+```bash
+scripts/ship.sh "what changed in this commit"
+```
+
+That stages everything, commits, pushes, and attaches to the resulting Actions
+run with `gh run watch`. (It's just a wrapper over `git add -A && git commit &&
+git push && gh run watch` — run those by hand if you prefer.)
 
 ---
 

@@ -5,14 +5,14 @@ title: Home
 
 <section class="hero">
   <div class="container">
-    <span class="hero__eyebrow">Rust · Aya · eBPF · Fedora 44</span>
+    <span class="hero__eyebrow">Python · OpenTelemetry · Grafana LGTM</span>
     <h1 class="hero__title">{{ site.title }}</h1>
     <p class="hero__lead">{{ site.description }}</p>
     <div class="hero__cta">
       <a class="btn btn--primary"
          href="{{ '/docs/00-outline/' | relative_url }}">Start the tutorial →</a>
       <a class="btn btn--secondary"
-         href="{{ '/docs/01-prerequisites/' | relative_url }}">Set up the lab</a>
+         href="{{ '/docs/01-prerequisites/' | relative_url }}">Set up the stack</a>
       <a class="btn btn--secondary"
          href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}"
          rel="noopener">View on GitHub ↗</a>
@@ -23,10 +23,10 @@ title: Home
 <section class="section-tight">
   <div class="container">
     <div class="stats">
-      <div class="stat"><span class="stat__value">🦀</span><span class="stat__label">Kernel &amp; user space, both in Rust with Aya</span></div>
-      <div class="stat"><span class="stat__value">VM</span><span class="stat__label">Deploy to a Fedora 44 KVM target — never to your laptop kernel</span></div>
-      <div class="stat"><span class="stat__value">📊</span><span class="stat__label">Output to Grafana via OpenTelemetry (Tempo + Mimir + Loki)</span></div>
-      <div class="stat"><span class="stat__value">🐍</span><span class="stat__label">Client load drivers in Python 3.14, all in Podman</span></div>
+      <div class="stat"><span class="stat__value">🔭</span><span class="stat__label">One trace across REST, gRPC, GraphQL, Kafka, and Postgres</span></div>
+      <div class="stat"><span class="stat__value">🧩</span><span class="stat__label">Six domain services — order, inventory, payment, shipping, notification, review</span></div>
+      <div class="stat"><span class="stat__value">📊</span><span class="stat__label">Traces, metrics, and logs in Grafana via OpenTelemetry (Tempo + Mimir + Loki)</span></div>
+      <div class="stat"><span class="stat__value">🐍</span><span class="stat__label">Python 3.14 services, all in Podman — no Kubernetes</span></div>
     </div>
   </div>
 </section>
@@ -35,15 +35,19 @@ title: Home
   <div class="container">
     <h2 class="section-heading">What this tutorial is</h2>
     <p class="section-sub">
-      A chapter-based, hands-on path to writing real eBPF programs in Rust
-      with <a href="https://aya-rs.dev/">Aya</a>. You build each program on
-      your Fedora 44 laptop, deploy it to a disposable Fedora 44 KVM virtual
-      machine (so a bad program never touches your working kernel), drive load
-      from Python 3.14 clients running in Podman, and watch traces, metrics,
-      and logs land in Grafana through OpenTelemetry. It assumes you have read
-      <em>The Rust Programming Language</em> — this is not a Rust tutorial.
-      All container images are UBI-based; all kernel tooling (bpftool, bpftrace,
-      bcc) comes from Fedora/Red&nbsp;Hat repositories.
+      A chapter-based, hands-on path to making a realistic Python service mesh
+      observable with <a href="https://opentelemetry.io/">OpenTelemetry</a>. A
+      single order request fans out across an external <strong>REST</strong> API,
+      service-to-service <strong>gRPC</strong> and <strong>GraphQL</strong>,
+      asynchronous <strong>Kafka</strong> events, and <strong>Postgres</strong> —
+      and you make the whole journey show up as one correlated trace, with metrics
+      and logs that link back to it, in a self-hosted Grafana stack. The domain
+      objects mirror the
+      <a href="https://github.com/patterncatalyst/datamesh-reference-arch-python">data-mesh reference architecture</a>
+      (order, inventory, payment, shipping, notification, review). It assumes
+      working knowledge of Python and these technologies — it is not a tutorial on
+      any of them. Everything runs locally in Podman; all images are UBI-based.
+      This is an OpenTelemetry talk, not a Kubernetes one.
     </p>
 
     {%- comment -%}

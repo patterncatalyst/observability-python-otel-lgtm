@@ -6,13 +6,14 @@ description: "What this talk covers, the running example, and the two ways to de
 duration: 3 minutes
 ---
 
-This is a hands-on talk about making a real Python service observable. The
-running example is small but complete: a FastAPI service that accepts a request,
-sends it across Kafka to a separate worker, which reads and writes Postgres and
-sends a reply back across Kafka — an async round trip. Over the talk that
-service grows traces, metrics, and logs from a single OpenTelemetry SDK, all
-correlated in a self-hosted Grafana stack, with an OpenTelemetry Collector in
-the path making the sampling and routing decisions.
+This is a hands-on talk about making a realistic Python system observable. The
+running example is a small service mesh — six domain services (order, inventory,
+payment, shipping, notification, review) drawn from the data-mesh reference
+architecture — where one `POST /orders` fans out across REST at the edge, gRPC
+between services, an asynchronous Kafka event, Postgres underneath, and a GraphQL
+read path. Over the talk that system grows traces, metrics, and logs from a
+single OpenTelemetry SDK, all correlated in a self-hosted Grafana stack, with an
+OpenTelemetry Collector in the path making the sampling and routing decisions.
 
 Everything runs locally under Podman. There are no paid accounts and no managed
 cloud on the path — the whole backend is the open-source Grafana **LGTM** stack:

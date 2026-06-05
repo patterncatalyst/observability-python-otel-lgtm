@@ -51,30 +51,38 @@ def fig_02_otel_data_path():
 
 
 # ── Fig 3.1 — Demo app topology and the async round trip ────────────────────
-def fig_03_app_topology():
-    g.emit("fig-03-app-topology", 900, 360,
+def fig_03_service_topology():
+    g.emit("fig-03-service-topology", 960, 440,
         bands=[
-            {"x": 250, "y": 60, "w": 420, "h": 250, "label": "compose network", "fill": "#f7f7f7"},
+            {"x": 170, "y": 50, "w": 770, "h": 240, "label": "compose network", "fill": "#f7f7f7"},
+            {"x": 170, "y": 330, "w": 770, "h": 80, "label": "Postgres · meshdb", "fill": "#fdecec"},
         ],
         nodes=[
-            {"x": 30,  "y": 150, "w": 150, "h": 70, "style": "sub", "lines": ["Client", "curl / hey"]},
-            {"x": 270, "y": 150, "w": 150, "h": 70, "style": "accent", "lines": ["FastAPI", "produce + consume"]},
-            {"x": 270, "y": 80,  "w": 380, "h": 44, "style": "box", "lines": ["Kafka  ·  requests topic"]},
-            {"x": 270, "y": 246, "w": 380, "h": 44, "style": "box", "lines": ["Kafka  ·  replies topic"]},
-            {"x": 500, "y": 150, "w": 150, "h": 70, "style": "accent", "lines": ["Consumer", "does the work"]},
-            {"x": 720, "y": 150, "w": 150, "h": 70, "style": "box", "lines": ["Postgres", "read + write"]},
+            {"x": 20,  "y": 150, "w": 130, "h": 70, "style": "sub", "lines": ["Client", "curl / Postman"]},
+            {"x": 190, "y": 150, "w": 150, "h": 70, "style": "accent", "lines": ["order", "REST :8080"]},
+            {"x": 410, "y": 80,  "w": 150, "h": 60, "style": "box", "lines": ["inventory", "gRPC :50051"]},
+            {"x": 410, "y": 170, "w": 150, "h": 60, "style": "box", "lines": ["payment", "gRPC :50052"]},
+            {"x": 620, "y": 150, "w": 150, "h": 70, "style": "box", "lines": ["Kafka", "order.placed"]},
+            {"x": 800, "y": 90,  "w": 140, "h": 56, "style": "box", "lines": ["shipping", "consumer"]},
+            {"x": 800, "y": 184, "w": 140, "h": 56, "style": "box", "lines": ["notification", "consumer"]},
+            {"x": 20,  "y": 340, "w": 150, "h": 60, "style": "accent", "lines": ["review", "GraphQL :8081"]},
         ],
         edges=[
-            {"x1": 180, "y1": 185, "x2": 270, "y2": 185, "label": "POST", "amber": True},
-            {"x1": 345, "y1": 150, "x2": 345, "y2": 124, "label": "publish", "lx": 305},
-            {"x1": 460, "y1": 102, "x2": 575, "y2": 150, "label": "consume", "ly": 118},
-            {"x1": 650, "y1": 185, "x2": 720, "y2": 185, "label": "SQL", "amber": True},
-            {"x1": 720, "y1": 200, "x2": 650, "y2": 200, "ly": 224},
-            {"x1": 575, "y1": 220, "x2": 460, "y2": 268, "label": "publish reply", "lx": 560, "ly": 250},
-            {"x1": 345, "y1": 246, "x2": 345, "y2": 220, "label": "consume", "lx": 300, "ly": 238},
-            {"x1": 270, "y1": 205, "x2": 180, "y2": 205, "label": "200 OK"},
+            {"x1": 150, "y1": 185, "x2": 190, "y2": 185, "label": "POST /orders", "amber": True},
+            {"x1": 340, "y1": 175, "x2": 410, "y2": 110, "label": "Reserve"},
+            {"x1": 340, "y1": 190, "x2": 410, "y2": 200, "label": "Authorize", "ly": 10},
+            {"x1": 560, "y1": 185, "x2": 620, "y2": 185, "label": "publish", "amber": True},
+            {"x1": 770, "y1": 175, "x2": 800, "y2": 118, "label": "consume"},
+            {"x1": 770, "y1": 195, "x2": 800, "y2": 210, "label": "consume", "ly": 12},
+            {"x1": 95,  "y1": 220, "x2": 95,  "y2": 340, "label": "GraphQL", "amber": True, "lx": -34},
+            # data-store connections (thin/dashed down into the Postgres band)
+            {"x1": 265, "y1": 220, "x2": 265, "y2": 330, "dashed": True},
+            {"x1": 485, "y1": 230, "x2": 485, "y2": 330, "dashed": True},
+            {"x1": 700, "y1": 220, "x2": 700, "y2": 330, "dashed": True, "lx": 700},
+            {"x1": 870, "y1": 240, "x2": 870, "y2": 330, "dashed": True},
+            {"x1": 95,  "y1": 400, "x2": 170, "y2": 370, "dashed": True},
         ],
-        notes=[{"x": 450, "y": 36, "text": "One HTTP request, two Kafka hops, a database round trip, and back — the chain the trace must follow.",
+        notes=[{"x": 450, "y": 36, "text": "One POST /orders crosses REST, two gRPC calls, Kafka, and Postgres; review serves a GraphQL read path. The trace must follow all of it.",
                 "anchor": "middle", "size": 12}])
 
 
@@ -179,7 +187,7 @@ def fig_11_correlation_graph():
 
 FIGURES = [
     fig_02_otel_data_path,
-    fig_03_app_topology,
+    fig_03_service_topology,
     fig_04_instrumentation_layers,
     fig_07_context_propagation,
     fig_09_sampling_location,

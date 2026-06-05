@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tiny diagram compiler for the ebpf-with-aya site.
+"""Tiny diagram compiler for the observability-python-otel-lgtm site.
 
 Each diagram is a spec of bands (background lanes), nodes (rounded boxes with a
 bold title line + smaller grey detail lines), edges (arrows with optional
