@@ -10,8 +10,8 @@ description: "A demo-driven talk: instrument a FastAPI / Kafka / Postgres servic
 brand_emoji: "🔭"   # appears next to the title in the header
 
 # GitHub identity for header link and example sourcing
-# TODO(robert): set these to the real GitHub owner/repo before publishing.
-github_username: "your-username"
+# Owner/repo for the header + footer links and example sourcing.
+github_username: "patterncatalyst"
 github_repo: "observability-python-otel-lgtm"
 
 # baseurl

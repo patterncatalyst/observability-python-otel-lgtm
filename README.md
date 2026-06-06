@@ -159,7 +159,7 @@ git push && gh run watch` — run those by hand if you prefer.)
 
 A couple of placeholders need real values:
 
-- `_config.yml` → `github_username` (currently `your-username`) and, if this is
+- `_config.yml` → `github_username` (set to `patterncatalyst`) and, if this is
   a project Pages site, confirm `baseurl: "/observability-python-otel-lgtm"`.
 - Confirm the **Python 3.14** UBI image tag and that the OpenTelemetry
   auto-instrumentation wheels are available for 3.14 (the single biggest unknown).
