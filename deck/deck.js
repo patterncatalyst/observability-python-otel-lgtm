@@ -18,7 +18,7 @@ const {
 // Run from inside deck/ (cd deck && node deck.js) so ../presentations resolves
 // to the repo root, and ./assets + ./png are found by deck-helpers.js.
 const OUT = "../presentations/otel-lgtm-python.pptx";
-const REV = "r01.0";
+const REV = "r2.0";
 
 const pres = newDeck();
 pres.title = "Observability for Python with OpenTelemetry & the Grafana LGTM Stack";
@@ -362,7 +362,7 @@ divider("00", "Foundations", "The stack, the signals, and the services we will i
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-divider("THE THREE SIGNALS", "Traces, metrics, logs — and the thread that ties them",
+divider("THE THREE SIGNALS", "Three signals, one thread",
   "Auto-instrumentation · Metrics · Logs · Custom spans across Kafka",
   "This part turns the SDK on and adds one signal at a time to the exact same code, ending by carrying trace context across the Kafka hop so the async work rejoins the trace.");
 
@@ -555,18 +555,71 @@ divider("THE THREE SIGNALS", "Traces, metrics, logs — and the thread that ties
     "All four pivot on one trace_id flowing through every hop. That movement between signals is the whole point; it is what a wall of disconnected logs can never give you.");
 }
 
+// ── THE PIPELINE — divider ───────────────────────────────────────────────────
+divider("THE PIPELINE", "Decide in the Collector",
+  "Sampling · Continuous profiling",
+  "The app emits everything; the Collector decides what survives and at what cost. This part keeps telemetry affordable at volume with tail sampling, then adds the fourth signal — profiling — that shows where the time goes inside a slow span.");
+
+// ── 10a. Sampling — diagram fig-09 ───────────────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE PIPELINE · SAMPLING",
+    "Where you decide what to keep",
+    "fig-09-sampling-location",
+    "Figure 10.1 — Head sampling decides at the SDK, cheap and blind; tail sampling buffers the whole trace in the Collector, then keeps errors, slow, and critical routes.");
+  addNotes(s,
+    "Set up head-vs-tail visually before the policy slide. The cost of intelligence is memory: tail sampling must hold each in-flight trace until it knows how the trace turned out, then decide.");
+}
+
+// ── 10b. Sampling — head vs tail, policies, cost ─────────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE PIPELINE · SAMPLING", "Keep errors, slow, and critical — sample the rest");
+  addBullets(s, [
+    "Head sampling decides in the SDK before the request runs: cheap, but blind — a 5% head sampler keeps 5% of your errors too. Tail sampling decides in the Collector once the trace is complete, so it can keep a trace because it errored, was slow, or hit a route you care about.",
+    "The policy is OR-evaluated in stack/otelcol/config.tail-sampling.yaml: keep every ERROR, every request over 1s, every /orders, plus a 5% probabilistic baseline of the healthy rest.",
+    "The services export 100% and own no sampling — what you keep is a Collector config change, not a redeploy. The cost is Collector RAM: roughly 10–50 KB per in-flight trace held for the decision window (here 30s), capped by num_traces.",
+  ], { fontSize: 15 });
+  addNotes(s,
+    "The headline trade: you pay in Collector memory for the ability to keep a trace based on how it turned out. decision_wait holds traces until trailing spans arrive; num_traces caps the buffer so the Collector drops new traces rather than running out of memory. Stress that the app is deliberately not in the sampling business — that separation is why the policy changes without a redeploy.");
+}
+
+// ── 11a. Profiling — diagram fig-12 ──────────────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE PIPELINE · PROFILING",
+    "The fourth signal: inside the slow span",
+    "fig-12-profiling",
+    "Figure 11.1 — A slow span in Tempo links by service + time window to a CPU flame graph in Pyroscope, showing which functions inside it spent the time.");
+  addNotes(s,
+    "Traces localise the slow span across services; the profile localises what was slow inside one. The link is service + time window, not a shared id — the same correlation pattern as trace→logs, one signal over.");
+}
+
+// ── 11b. Profiling — fourth signal, honest state ─────────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE PIPELINE · PROFILING", "Bundled backend, unsettled client side");
+  addBullets(s, [
+    "Continuous profiling samples the call stack a few times a second at low overhead, always on, and aggregates it into a flame graph — the view traces, metrics, and logs cannot give, because they stop at the process boundary.",
+    "The backend is already here: the otel-lgtm image bundles Pyroscope with a Collector profiles pipeline. The span→flame-graph link is Grafana's tracesToProfiles, matched on service + time.",
+    "Honest caveats: the 0.8.1 image pin may predate Pyroscope (bump it); the mounted Collector config must add a profiles pipeline back; and the Python OTLP-profiles signal is still experimental, so the Pyroscope SDK is the pragmatic path today. This is the least-settled signal in the stack.",
+  ], { fontSize: 15 });
+  addNotes(s,
+    "Be candid that this chapter is a sketch to validate, not a settled recipe. The good news is the backend ships in the same image; the friction is all on the Python client side and the version-sensitive wiring. obs.profiling is an optional, gated hook that no-ops unless PYROSCOPE_ADDRESS is set.");
+}
+
 // ── Closing / roadmap ────────────────────────────────────────────────────────
 {
   const s = S();
-  addContentTitle(s, "THE THREE SIGNALS", "Where this goes next");
+  addContentTitle(s, "WRAP-UP", "One request, four signals, end to end");
   addBullets(s, [
-    "You now have the full correlation story across the services: traces across REST and gRPC for free, metrics with exemplars, logs stamped with the trace_id, custom spans that carry the trace across Kafka, the honest auto/custom/hybrid trade-off, and a Grafana walkthrough that pivots trace → logs → metrics on one click.",
-    "Next part — the pipeline: move the costly decisions into the Collector. Where sampling happens, what it costs to keep telemetry at volume, and continuous profiling.",
-    "Iteration r1.1 ships Sections 0–9, the six example services, the shared protos and obs library, and Demos 1–7. The Collector-side pipeline demos land in r2.0; see the iteration plan in the repo.",
+    "The full correlation story across the services: traces across REST and gRPC for free, metrics with exemplars, logs stamped with the trace_id, custom spans that carry the trace across Kafka, the honest auto/custom/hybrid trade-off, and a Grafana walkthrough that pivots trace → logs → metrics on one click.",
+    "The pipeline part moved the costly decisions into the Collector: tail sampling that keeps errors, slow, and critical routes at volume while the app stays out of the sampling business — and continuous profiling as the fourth signal, where the CPU goes inside a slow span.",
+    "The tutorial mirrors these slides chapter for chapter (§0–§11), with six example services, the shared protos and obs library, and a runnable demo per chapter. It is authored against the target versions but not yet run end to end — it ships marked unverified, and a live rehearsal against the real stack is the next milestone.",
   ], { fontSize: 15 });
   addNotes(s,
-    "Re-walk the arc so the audience knows what they hold and what's coming. The foundation gave them the services and the model; this part gave them the three correlated signals, the cost of getting them, and the one-click view that ties them together; the pipeline part is about keeping all of it affordable at volume. " +
-    "Be honest about iteration state: r1.1 is authored against the target versions but not yet run end-to-end here, so it ships marked unverified, and a live rehearsal against the real stack is the next milestone. Point people at the repo: the tutorial mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
+    "Re-walk the whole arc so the audience knows what they hold. Foundations gave them the services and the model; the three signals gave them the correlated signals, their cost, and the one-click view; the pipeline kept it affordable at volume and added the fourth signal. " +
+    "Be honest about iteration state: this is authored against the target versions but not yet run end-to-end here, so it ships marked unverified, and a live rehearsal is the next milestone. Point people at the repo — the tutorial mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
 }
 
 pres.writeFile({ fileName: OUT })
