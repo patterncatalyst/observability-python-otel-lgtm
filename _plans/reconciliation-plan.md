@@ -40,7 +40,7 @@ from a separate data-mesh reference project; this is not a data mesh. Decisions 
 | 6 | Auto vs custom vs hybrid | unverified | Fully-instrumented trace shows both auto and custom spans in one tree; no operation is double-instrumented; metric pipeline carries no unbounded labels. |
 | 7 | Correlated view (Grafana) | unverified | Span→logs link resolves by `trace_id`; metric exemplars open a trace; gRPC client/server span pair exposes serde cost + message-size attributes; one `order_id` agrees across trace, logs, and Postgres. |
 | 8 | Sampling | unverified | Head vs. tail Collector configs both run; tail keeps errors + slow + `/orders`; memory stays bounded under `hey`. |
-| 9 | Profiling | not started | Continuous profiling backend pinned; a flame graph renders; span↔profile link works. |
+| 9 | Profiling | unverified | otel-lgtm tag bundles Pyroscope; profiles pipeline added to the mounted Collector config; pyroscope-io pushes; tracesToProfiles links span→flame graph. |
 
 ## Versions to pin and re-verify against upstream before delivery
 
@@ -63,7 +63,7 @@ from a separate data-mesh reference project; this is not a data mesh. Decisions 
 ## Open questions carried from the PRD
 
 - Python 3.14 auto-instrumentation wheel availability (gates Demo 2's runtime).
-- Profiling backend choice (dedicated Pyroscope-style vs. native OTel profiling signal).
+- Profiling (§11) is authored as a sketch and needs validation: (a) **bump the otel-lgtm pin** — `0.8.1` may predate the bundled Pyroscope (recent tags are 0.11+); (b) the mounted Collector config must gain a `profiles` pipeline (kept out of the default config to avoid a feature-gate breaking startup); (c) add the optional `pyroscope-io` dependency; (d) confirm Grafana `tracesToProfiles` links span→flame graph. Native OTLP profiles remain experimental in Python.
 - Exemplar support configured as Demo 7 needs in the pinned Mimir/Grafana.
 
 ## Resolved

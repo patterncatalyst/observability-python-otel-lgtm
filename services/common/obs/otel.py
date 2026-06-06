@@ -107,6 +107,11 @@ def setup(service_name: str) -> ObsConfig:
     _TRACER = trace.get_tracer(service_name)
     _METER = metrics.get_meter(service_name)
     _enable_auto_instrumentation()
+
+    # Fourth signal (optional): continuous profiling via Pyroscope. No-ops unless
+    # PYROSCOPE_ADDRESS is set and the pyroscope SDK is installed. See obs.profiling.
+    from . import profiling
+    profiling.setup_profiling(service_name)
     return cfg
 
 

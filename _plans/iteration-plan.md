@@ -82,7 +82,7 @@ The hybrid approach and the correlated view moved forward into the r1.1 "three
 signals" part (§8 and §9). The pipeline part is now the Collector-side concerns.
 
 - [x] §10 Sampling & the Collector + Demo 8 (head vs. tail; swap Collector config; what it costs to keep). Uses Fig 9.1 (fig-09).
-- [ ] §11 Continuous profiling + Demo 9 (flame graph; span↔profile link). Needs a new figure.
+- [x] §11 Continuous profiling + Demo 9 (flame graph; span↔profile link). New figure fig-12 added. Part 2 complete.
 - [ ] §12 Anti-patterns & production notes; §N Where to go next.
 - [ ] Deck sections for §8–§N.
 

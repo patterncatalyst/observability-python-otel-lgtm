@@ -262,6 +262,30 @@ def fig_01_running_stack():
                 "anchor": "middle", "size": 12}])
 
 
+# ── Fig 11.1 — Continuous profiling: the span → flame-graph link ─────────────
+def fig_12_profiling():
+    g.emit("fig-12-profiling", 900, 360,
+        nodes=[
+            {"x": 40,  "y": 150, "w": 210, "h": 84, "style": "accent",
+             "lines": ["span: Authorize", "820 ms — but where?", "(Tempo)"]},
+            # flame graph: nested frames, the hotspot highlighted
+            {"x": 520, "y": 120, "w": 330, "h": 28, "style": "box",  "lines": ["serve (request)"]},
+            {"x": 520, "y": 150, "w": 280, "h": 28, "style": "box",  "lines": ["Authorize"]},
+            {"x": 520, "y": 180, "w": 180, "h": 28, "style": "accent","lines": ["serialize 55%"]},
+            {"x": 700, "y": 180, "w": 100, "h": 28, "style": "sub",  "lines": ["db.execute 30%"]},
+        ],
+        edges=[
+            {"x1": 250, "y1": 188, "x2": 520, "y2": 160,
+             "label": "Traces → Profiles · same service + time window", "amber": True, "ly": -12},
+        ],
+        notes=[
+            {"x": 690, "y": 104, "text": "CPU flame graph (Pyroscope)", "anchor": "middle", "size": 12},
+            {"x": 450, "y": 320,
+             "text": "Traces localise the slow span; the profile shows which functions burned the CPU inside it.",
+             "anchor": "middle", "size": 12},
+        ])
+
+
 # ── Fig 0.1 — The arc: three parts, one trace_id, ending in one correlated view ─
 def fig_00_arc():
     g.emit("fig-00-arc", 940, 300,
@@ -300,6 +324,7 @@ FIGURES = [
     fig_07_context_propagation,
     fig_09_sampling_location,
     fig_11_correlation_graph,
+    fig_12_profiling,
 ]
 
 if __name__ == "__main__":

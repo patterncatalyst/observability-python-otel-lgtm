@@ -8,6 +8,6 @@ Typical service startup:
     # ... for an HTTP service, once the app exists:
     otel.instrument_fastapi(app)
 """
-from . import otel, kafka, kafka_propagation, db, logging  # noqa: F401
+from . import otel, kafka, kafka_propagation, db, logging, profiling  # noqa: F401
 
-__all__ = ["otel", "kafka", "kafka_propagation", "db", "logging"]
+__all__ = ["otel", "kafka", "kafka_propagation", "db", "logging", "profiling"]

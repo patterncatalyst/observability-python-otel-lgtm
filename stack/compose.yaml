@@ -31,6 +31,9 @@ x-service-env: &service_env
   # Kafka trace propagation: on by default; Demo 2 exports =false to show the
   # trace breaking at the message boundary, Demo 5 =true to show the fix.
   PROPAGATE_KAFKA_CONTEXT: "${PROPAGATE_KAFKA_CONTEXT:-true}"
+  # Optional fourth signal: set to the bundled Pyroscope (e.g. http://lgtm:4040)
+  # to turn on continuous profiling via the Pyroscope SDK. Empty = off.
+  PYROSCOPE_ADDRESS: "${PYROSCOPE_ADDRESS:-}"
   DEPLOY_ENV: local
   SERVICE_VERSION: dev
 
