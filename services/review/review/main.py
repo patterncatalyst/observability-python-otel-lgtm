@@ -9,6 +9,7 @@ That resolver-span pattern is what the custom-instrumentation chapter generalise
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
 import strawberry
@@ -65,16 +66,19 @@ class Query:
 
 
 schema = strawberry.Schema(Query)
-app = FastAPI(title="review")
-app.include_router(GraphQLRouter(schema), prefix="/graphql")
 
 
-@app.on_event("startup")
-async def _startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     obslog.configure()
     otel.setup("review")
     otel.instrument_fastapi(app)
     log.info("review GraphQL service started")
+    yield
+
+
+app = FastAPI(title="review", lifespan=lifespan)
+app.include_router(GraphQLRouter(schema), prefix="/graphql")
 
 
 @app.get("/health")

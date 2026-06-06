@@ -109,5 +109,6 @@ Chapter 4 left open and makes the asynchronous consumers part of the same trace.
 *Verification status: <span class="status status--unverified">unverified</span>.
 A real run must confirm order logs are JSON with a populated `trace_id` during a
 request, the value matches the trace in Tempo, and Loki's derived field links to
-it. Logs reach Loki over the OTLP log signal, so the Collector's logs pipeline
-must be enabled — confirmed when the stack's Collector config is exercised.*
+it. Logs reach Loki over the OTLP log signal; the stack's Collector config (both
+the base and the tail-sampling variant) carries an `otlp → loki` logs pipeline,
+so this path is wired — it just hasn't been run end to end here.*

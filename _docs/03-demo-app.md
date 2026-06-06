@@ -81,7 +81,8 @@ promise, promise before you announce.
 **The gRPC services own a domain each.** Inventory (`services/inventory`) backs
 `Reserve` with a single conditional `UPDATE ... WHERE on_hand >= $qty RETURNING
 on_hand`, which both checks and decrements stock atomically, and records a
-reservation row keyed by `order_id` so a retry is idempotent. Payment
+reservation row, with a check for an existing reservation that makes a sequential
+retry idempotent. Payment
 (`services/payment`) authorizes any amount at or under a fixed ceiling and
 declines anything above it — a trivial, deterministic rule whose only job is to
 give us a repeatable success path and a repeatable failure path on demand.
@@ -100,8 +101,11 @@ reviews from Postgres.
 
 **Document, don't hide, the fragile bits.** For laptop simplicity every domain
 shares one Postgres database (`appdb`) rather than a store per domain; the seam
-is honest and noted in `stack/db/init/01-schema.sql`.
-The payment ceiling and the catalog unit price are hardcoded so demos are
+is honest and noted in `stack/db/init/01-schema.sql`. Inventory's reservation
+idempotency is that application-level check rather than a database constraint —
+payment, by contrast, has `order_id UNIQUE` on its authorizations — so it covers
+the ordinary retry but not two genuinely concurrent reserves; a laptop is fine,
+production would want the unique key. The payment ceiling and the catalog unit price are hardcoded so demos are
 deterministic. Kafka auto-creates the `order.placed` topic. None of these change
 the observability story — the spans and metrics are identical — but they would
 all change in production.
