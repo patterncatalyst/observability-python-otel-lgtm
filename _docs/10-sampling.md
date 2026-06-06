@@ -13,7 +13,7 @@ just as importantly, *where* that decision is made. The answer this stack uses i
 the OpenTelemetry Collector, after the fact, which is what lets you keep the
 traces you will actually want without keeping the ones you never will.
 
-{% raw %}{% include excalidraw.html file="fig-09-sampling-location" alt="Head sampling decides at the SDK before a trace exists (cheap but blind); tail sampling sends all spans to the Collector, which buffers the whole trace and then keeps errors, slow, and critical routes while dropping most healthy traffic (costs RAM, keeps what matters)." caption="Figure 10.1 — Head sampling is cheap and blind; tail sampling costs memory and keeps what matters" %}{% endraw %}
+{% include excalidraw.html file="fig-09-sampling-location" alt="Head sampling decides at the SDK before a trace exists (cheap but blind); tail sampling sends all spans to the Collector, which buffers the whole trace and then keeps errors, slow, and critical routes while dropping most healthy traffic (costs RAM, keeps what matters)." caption="Figure 10.1 — Head sampling is cheap and blind; tail sampling costs memory and keeps what matters" %}
 
 ## Head versus tail
 

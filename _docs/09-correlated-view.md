@@ -18,7 +18,7 @@ traffic: mostly successful orders, plus a few large enough to trip the payment
 ceiling so there are error traces to find. Run it, then follow the four moves
 below in Grafana at `http://localhost:3000`.
 
-{% raw %}{% include excalidraw.html file="fig-11-correlation-graph" alt="A trace in Tempo links to its logs in Loki by trace_id and to its metrics in Mimir by exemplar; arrows show the pivots between the three signals." caption="Figure 9.1 — One trace_id makes traces, logs, and metrics one view" %}{% endraw %}
+{% include excalidraw.html file="fig-11-correlation-graph" alt="A trace in Tempo links to its logs in Loki by trace_id and to its metrics in Mimir by exemplar; arrows show the pivots between the three signals." caption="Figure 9.1 — One trace_id makes traces, logs, and metrics one view" %}
 
 ## 1. The trace, read as a business flow
 

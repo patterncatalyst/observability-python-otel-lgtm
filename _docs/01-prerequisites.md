@@ -45,7 +45,7 @@ that to your `PATH` if it isn't already.
 
 ## The stack, before any telemetry
 
-{% raw %}{% include excalidraw.html file="fig-01-running-stack" alt="The compose network: six services send OTLP/HTTP on 4318 to the bundled otel-lgtm Collector, which feeds Tempo, Mimir, and Loki behind one Grafana UI; the services also talk to Kafka and Postgres." caption="Figure 1.1 — One podman compose up: the services, Kafka and Postgres, and the bundled otel-lgtm backend" %}{% endraw %}
+{% include excalidraw.html file="fig-01-running-stack" alt="The compose network: six services send OTLP/HTTP on 4318 to the bundled otel-lgtm Collector, which feeds Tempo, Mimir, and Loki behind one Grafana UI; the services also talk to Kafka and Postgres." caption="Figure 1.1 — One podman compose up: the services, Kafka and Postgres, and the bundled otel-lgtm backend" %}
 
 The backend is one image — `grafana/otel-lgtm` — that bundles Grafana, Tempo,
 Mimir (Prometheus-compatible), Loki, *and* an OpenTelemetry Collector. Bundling

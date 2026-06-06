@@ -24,7 +24,7 @@ The code is under `services/`, the shared protos under `proto/`, and the runnabl
 baseline in `examples/01-no-telemetry/`. The run script there builds the
 stack and places an order; its `README.md` covers what it does.
 
-{% raw %}{% include excalidraw.html file="fig-03-service-topology" alt="A client POSTs to the order service over REST; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification consume the event; the review service serves a GraphQL read API over Postgres." caption="Figure 3.1 — One order, five protocols, six services" %}{% endraw %}
+{% include excalidraw.html file="fig-03-service-topology" alt="A client POSTs to the order service over REST; order calls inventory and payment over gRPC, writes Postgres, and publishes order.placed to Kafka; shipping and notification consume the event; the review service serves a GraphQL read API over Postgres." caption="Figure 3.1 — One order, five protocols, six services" %}
 
 ## The one request the whole talk follows
 

@@ -12,7 +12,7 @@ each other. This chapter is about the model that makes them one system instead
 of three: what each signal is for, how OpenTelemetry moves them, and the shared
 identifier that lets you pivot between them.
 
-{% raw %}{% include excalidraw.html file="fig-02-otel-data-path" alt="A Python service with the OpenTelemetry SDK emits traces, metrics, and logs over OTLP to the Collector, whose receivers, processors, and exporters route each signal to Tempo, Mimir, and Loki, all viewed in Grafana." caption="Figure 2.1 — One SDK, one Collector, three backends, one UI" %}{% endraw %}
+{% include excalidraw.html file="fig-02-otel-data-path" alt="A Python service with the OpenTelemetry SDK emits traces, metrics, and logs over OTLP to the Collector, whose receivers, processors, and exporters route each signal to Tempo, Mimir, and Loki, all viewed in Grafana." caption="Figure 2.1 — One SDK, one Collector, three backends, one UI" %}
 
 ## Three signals, three questions
 

@@ -17,7 +17,7 @@ this chapter.
 The code is in `examples/04-logs/`; the logging setup is
 `services/common/obs/logging.py`.
 
-{% raw %}{% include excalidraw.html file="fig-06-log-correlation" alt="A request span's trace_id is stamped onto each log record; the stdout JSON is the console view while the SDK exports the same record over OTLP to the Collector and Loki, and Loki and Tempo link to each other by the shared trace_id." caption="Figure 6.1 — Stamp the trace_id onto every log, and Loki and Tempo point at each other" %}{% endraw %}
+{% include excalidraw.html file="fig-06-log-correlation" alt="A request span's trace_id is stamped onto each log record; the stdout JSON is the console view while the SDK exports the same record over OTLP to the Collector and Loki, and Loki and Tempo link to each other by the shared trace_id." caption="Figure 6.1 — Stamp the trace_id onto every log, and Loki and Tempo point at each other" %}
 
 ## Why structured, and why the ids
 

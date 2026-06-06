@@ -16,7 +16,7 @@ the aggregate view and the single-request view are one click apart.
 The code is in `examples/03-metrics/`; the metric pipeline lives in the same
 `obs.otel.setup()` you already met.
 
-{% raw %}{% include excalidraw.html file="fig-05-metrics-exemplars" alt="One request records both a per-event span (to Tempo) and a duration measurement into a periodic histogram (to Mimir); an exemplar on a histogram bucket carries a trace_id that links back to a representative trace." caption="Figure 5.1 — One request, two shapes — and the exemplar that links them" %}{% endraw %}
+{% include excalidraw.html file="fig-05-metrics-exemplars" alt="One request records both a per-event span (to Tempo) and a duration measurement into a periodic histogram (to Mimir); an exemplar on a histogram bucket carries a trace_id that links back to a representative trace." caption="Figure 5.1 — One request, two shapes — and the exemplar that links them" %}
 
 ## RED, and where the numbers come from
 

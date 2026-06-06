@@ -19,7 +19,7 @@ The code is in `examples/05-spans-across-kafka/`; the bridge is
 `services/common/obs/kafka.py` and the consumers under `services/shipping` and
 `services/notification`.
 
-{% raw %}{% include excalidraw.html file="fig-07-context-propagation" alt="A trace context flows from the order span across a gRPC call (automatic, via traceparent header) and across a Kafka message (manual, via injected header) into a consumer span, with the consumer span shown as a child of the order span." caption="Figure 7.1 — gRPC propagates context for you; across Kafka you inject and extract it yourself" %}{% endraw %}
+{% include excalidraw.html file="fig-07-context-propagation" alt="A trace context flows from the order span across a gRPC call (automatic, via traceparent header) and across a Kafka message (manual, via injected header) into a consumer span, with the consumer span shown as a child of the order span." caption="Figure 7.1 — gRPC propagates context for you; across Kafka you inject and extract it yourself" %}
 
 ## Why the boundary breaks, and the fix in one sentence
 

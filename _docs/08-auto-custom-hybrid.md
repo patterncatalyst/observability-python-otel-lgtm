@@ -18,7 +18,7 @@ the line is the skill.
 The code is the same code you already have; this chapter reads it through the lens
 of the three approaches and runs `examples/06-hybrid/` to see them side by side.
 
-{% raw %}{% include excalidraw.html file="fig-04-instrumentation-layers" alt="Three columns: auto-instrumentation gives breadth for free; custom spans give depth where it matters; the hybrid runs both, and is the real-world default." caption="Figure 8.1 — Auto for breadth, custom for depth, hybrid for both" %}{% endraw %}
+{% include excalidraw.html file="fig-04-instrumentation-layers" alt="Three columns: auto-instrumentation gives breadth for free; custom spans give depth where it matters; the hybrid runs both, and is the real-world default." caption="Figure 8.1 — Auto for breadth, custom for depth, hybrid for both" %}
 
 ## The three approaches, and what each one costs
 

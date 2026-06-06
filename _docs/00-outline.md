@@ -28,7 +28,7 @@ cloud on the path — the whole backend is the open-source Grafana **LGTM** stac
 
 ## The arc
 
-{% raw %}{% include excalidraw.html file="fig-00-arc" alt="A three-part roadmap: Foundations, then the three signals converging into one correlated view, then the pipeline; a single trace_id threads through all three." caption="Figure 0.1 — The arc: three parts, one trace_id, ending in one correlated view" %}{% endraw %}
+{% include excalidraw.html file="fig-00-arc" alt="A three-part roadmap: Foundations, then the three signals converging into one correlated view, then the pipeline; a single trace_id threads through all three." caption="Figure 0.1 — The arc: three parts, one trace_id, ending in one correlated view" %}
 
 | Part | Theme | Chapters |
 |---|---|---|

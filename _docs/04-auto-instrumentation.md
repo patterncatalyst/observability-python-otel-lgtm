@@ -18,7 +18,7 @@ The code is in `examples/02-auto-instrumentation/` and the shared `obs` library
 under `services/common/`. The run script builds the stack, places an order, and
 points you at the trace.
 
-{% raw %}{% include excalidraw.html file="fig-04-instrumentation-layers" alt="Three layers: application code at the top with no telemetry calls; an auto-instrumentation layer wrapping FastAPI, gRPC, and asyncpg; and the OpenTelemetry SDK below exporting OTLP to the Collector." caption="Figure 4.1 — Auto-instrumentation sits between your code and the libraries it already uses" %}{% endraw %}
+{% include excalidraw.html file="fig-04-instrumentation-layers" alt="Three layers: application code at the top with no telemetry calls; an auto-instrumentation layer wrapping FastAPI, gRPC, and asyncpg; and the OpenTelemetry SDK below exporting OTLP to the Collector." caption="Figure 4.1 — Auto-instrumentation sits between your code and the libraries it already uses" %}
 
 ## What "auto" actually means
 
