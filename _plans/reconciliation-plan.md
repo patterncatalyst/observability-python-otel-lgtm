@@ -39,7 +39,7 @@ from a separate data-mesh reference project; this is not a data mesh. Decisions 
 | 5 | Custom spans across Kafka | unverified | With propagation on, shipping + notification spans share the order's trace and parent to its publish span; GraphQL resolver spans nest under the request. aiokafka header round-trip of `traceparent` is the highest risk. |
 | 6 | Auto vs custom vs hybrid | unverified | Fully-instrumented trace shows both auto and custom spans in one tree; no operation is double-instrumented; metric pipeline carries no unbounded labels. |
 | 7 | Correlated view (Grafana) | unverified | Span→logs link resolves by `trace_id`; metric exemplars open a trace; gRPC client/server span pair exposes serde cost + message-size attributes; one `order_id` agrees across trace, logs, and Postgres. |
-| 8 | Sampling | not started | Head vs. tail Collector configs both run; tail keeps errors + slow + `/orders`; memory stays bounded under `hey`. |
+| 8 | Sampling | unverified | Head vs. tail Collector configs both run; tail keeps errors + slow + `/orders`; memory stays bounded under `hey`. |
 | 9 | Profiling | not started | Continuous profiling backend pinned; a flame graph renders; span↔profile link works. |
 
 ## Versions to pin and re-verify against upstream before delivery
