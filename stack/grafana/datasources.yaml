@@ -72,12 +72,13 @@ datasources:
     isDefault: false
     editable: true
     jsonData:
-      # Derived field: extract trace_id from log lines and link to Tempo.
-      # The regex matches log lines that contain "trace_id=<hex>" — common
-      # output from OTel-instrumented apps.
+      # Derived field: link a log's trace_id to its trace in Tempo. Logs arrive
+      # over OTLP, so Loki stores trace_id as *structured metadata* (not embedded
+      # in the message text) — match it as a label, not a regex over the body.
       derivedFields:
         - datasourceUid: tempo
-          matcherRegex: "trace_id=(\\w+)"
+          matcherType: label
+          matcherRegex: trace_id
           name: trace_id
           url: '$${__value.raw}'
           urlDisplayLabel: 'View trace in Tempo'
