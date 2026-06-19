@@ -40,17 +40,17 @@ press **Enter** to advance. To rehearse without stopping, set `DEMO_NO_PAUSE=1`.
 |---|------|---------------|--------------|
 | 1 | A trace for free | One order fans out over REST → gRPC → Postgres; the whole trace is auto-instrumented | Tempo: the span tree |
 | 2 | The trace breaks at Kafka | Propagation OFF → the trace stops at the publish; ON → shipping/notification rejoin it | Tempo: orphaned vs connected |
-| 3 | Metrics & exemplars *(planned)* | RED metrics from the same traffic; click an exemplar straight to a trace | Grafana: metric → trace |
-| 4 | Correlated logs *(planned)* | JSON logs stamped with trace_id; pivot log ↔ trace both ways | Loki ↔ Tempo |
-| 5 | The correlated view *(planned)* | One request, read across traces, logs, and metrics on one screen | Grafana Explore |
-| 6 | Sampling *(planned)* | Tail sampling keeps errors, slow, and `/orders`; samples the healthy rest | Tempo: what survived |
-| 7 | Profiling *(planned)* | The flame graph for a slow span — where the CPU went | Pyroscope (sketch) |
-| 8 | The live service graph *(planned)* | The topology lighting up with live request/error rates | Grafana: node graph |
+| 3 | Metrics & exemplars | RED metrics from the same traffic; click an exemplar straight to a trace | Grafana: metric → trace |
+| 4 | Correlated logs | JSON logs stamped with trace_id; pivot log ↔ trace both ways | Loki ↔ Tempo |
+| 5 | The correlated view | One request, read across traces, logs, and metrics on one screen | Grafana Explore |
+| 6 | Sampling | Tail sampling keeps errors, slow, and `/orders`; samples the healthy rest | Tempo: what survived |
+| 7 | Profiling | The flame graph for a slow span — where the CPU went | Pyroscope (sketch) |
+| 8 | The live service graph | The topology lighting up with live request/error rates | Grafana: node graph |
 
-Demos 1–2 are in. The rest are being built out in this same style, beat for
-beat with the talk; demos 7–8 depend on the profiling and service-graph stack
-wiring (still unverified), so they'll cue those as the experimental/extended
-features they are.
+All eight are in, beat for beat with the talk. Demos 7–8 depend on stack wiring
+that's still unverified — profiling (a sketch) and the service-graph metrics —
+so they cue those honestly as the experimental/extended features they are, and
+degrade to a clear note if the feature isn't enabled.
 
 ## Prerequisites
 

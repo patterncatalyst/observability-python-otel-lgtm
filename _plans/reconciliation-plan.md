@@ -40,6 +40,7 @@ from a separate data-mesh reference project; this is not a data mesh. Decisions 
 | 6 | Auto vs custom vs hybrid | unverified | Fully-instrumented trace shows both auto and custom spans in one tree; no operation is double-instrumented; metric pipeline carries no unbounded labels. |
 | 7 | Correlated view (Grafana) | unverified | Span→logs link resolves by `trace_id`; metric exemplars open a trace; gRPC client/server span pair exposes serde cost + message-size attributes; one `order_id` agrees across trace, logs, and Postgres. |
 | 8 | Sampling | unverified | Head vs. tail Collector configs both run; tail keeps errors + slow + `/orders`; memory stays bounded under `hey`. |
+| 10 | Service graph | unverified | Tempo metrics-generator (service-graphs + span-metrics) enabled and remote-writing; Grafana service map resolves; Kafka hop shows as producer/consumer edges. |
 | 9 | Profiling | unverified | otel-lgtm tag bundles Pyroscope; profiles pipeline added to the mounted Collector config; pyroscope-io pushes; tracesToProfiles links span→flame graph. |
 
 ## Versions to pin and re-verify against upstream before delivery

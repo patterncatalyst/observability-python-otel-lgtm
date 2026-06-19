@@ -262,6 +262,36 @@ def fig_01_running_stack():
                 "anchor": "middle", "size": 12}])
 
 
+# ── Fig 12.1 — The live service graph: trace-derived topology with RED on edges ─
+def fig_13_service_graph():
+    g.emit("fig-13-service-graph", 900, 430,
+        nodes=[
+            {"x": 60,  "y": 150, "w": 150, "h": 62, "style": "accent", "lines": ["order", "/orders · REST"]},
+            {"x": 60,  "y": 330, "w": 150, "h": 48, "style": "sub",    "lines": ["postgres"]},
+            {"x": 360, "y": 70,  "w": 150, "h": 52, "style": "box",    "lines": ["inventory", "gRPC"]},
+            {"x": 360, "y": 158, "w": 150, "h": 52, "style": "box",    "lines": ["payment", "gRPC"]},
+            {"x": 360, "y": 246, "w": 150, "h": 52, "style": "sub",    "lines": ["kafka", "order.placed"]},
+            {"x": 620, "y": 212, "w": 150, "h": 50, "style": "box",    "lines": ["shipping"]},
+            {"x": 620, "y": 288, "w": 150, "h": 50, "style": "box",    "lines": ["notification"]},
+        ],
+        edges=[
+            {"x1": 210, "y1": 172, "x2": 360, "y2": 96,  "label": "45 rps · 0% err", "amber": True, "ly": -10},
+            {"x1": 210, "y1": 184, "x2": 360, "y2": 184, "label": "45 rps · 2% err", "amber": True, "ly": -10},
+            {"x1": 210, "y1": 198, "x2": 360, "y2": 272, "label": "publish"},
+            {"x1": 510, "y1": 272, "x2": 620, "y2": 237, "label": "consume"},
+            {"x1": 510, "y1": 282, "x2": 620, "y2": 313, "label": "consume"},
+            {"x1": 135, "y1": 212, "x2": 135, "y2": 330, "label": "db writes", "dashed": True, "lx": 30},
+        ],
+        notes=[
+            {"x": 450, "y": 32,
+             "text": "The live service graph — request rate, error rate, and latency on every edge",
+             "anchor": "middle", "size": 13},
+            {"x": 450, "y": 410,
+             "text": "Built by Tempo's metrics-generator from span relationships — no service mesh, no sidecars, no Kubernetes.",
+             "anchor": "middle", "size": 12},
+        ])
+
+
 # ── Fig 11.1 — Continuous profiling: the span → flame-graph link ─────────────
 def fig_12_profiling():
     g.emit("fig-12-profiling", 900, 360,
@@ -325,6 +355,7 @@ FIGURES = [
     fig_09_sampling_location,
     fig_11_correlation_graph,
     fig_12_profiling,
+    fig_13_service_graph,
 ]
 
 if __name__ == "__main__":
