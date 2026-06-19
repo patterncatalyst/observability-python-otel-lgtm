@@ -608,13 +608,37 @@ divider("THE PIPELINE", "Decide in the Collector",
     "Be candid that this chapter is a sketch to validate, not a settled recipe. The good news is the backend ships in the same image; the friction is all on the Python client side and the version-sensitive wiring. obs.profiling is an optional, gated hook that no-ops unless PYROSCOPE_ADDRESS is set.");
 }
 
+// ── 12a. Service graph — diagram fig-13 ──────────────────────────────────────
+{
+  const s = S();
+  addDiagramSlide(s, "THE PIPELINE · LIVE SERVICE GRAPH",
+    "What's going on right now",
+    "fig-13-service-graph",
+    "Figure 12.1 — The topology with live request, error, and latency on every edge — built from traces by Tempo's metrics-generator, no mesh required.");
+  addNotes(s,
+    "The operational, all-requests-at-once view — same correlation idea one level up: instead of one trace, the shape of all of them. Stress that it's trace-derived: the edges come from client/server and producer/consumer span kinds and db.* attributes, which is exactly why it needs no service mesh or sidecars.");
+}
+
+// ── 12b. Service graph — Kiali-style, trace-derived ──────────────────────────
+{
+  const s = S();
+  addContentTitle(s, "THE PIPELINE · LIVE SERVICE GRAPH", "The Kiali view, without the mesh");
+  addBullets(s, [
+    "Tempo's metrics-generator reads span relationships — client/server calls, producer/consumer hops, db.* attributes — and emits service-graph and span metrics; Grafana renders them as a node graph with live RED on every node and edge.",
+    "That's exactly this system's shape: REST/gRPC give the inventory and payment edges, the Kafka hop gives shipping and notification (because §7 set the producer/consumer span kinds), and asyncpg gives the Postgres edge.",
+    "So you get the Kiali-style live map — request rate, error rate, latency, animated — with no service mesh, no sidecars, and no Kubernetes. Enabling it is two bits of config: the generator's processors plus remote-write, and Grafana's service map pointing at the metrics store.",
+  ], { fontSize: 15 });
+  addNotes(s,
+    "This is the answer to 'can we see what's happening live?' without adopting Istio. The Kafka edge only appears if propagation is on (Demo 2) — a missing shipping/notification edge is the broken async link from §7, seen from above. The Grafana service map is provisioned; the Tempo generator enablement is the version-sensitive bit to confirm.");
+}
+
 // ── Closing / roadmap ────────────────────────────────────────────────────────
 {
   const s = S();
   addContentTitle(s, "WRAP-UP", "One request, four signals, end to end");
   addBullets(s, [
     "The full correlation story across the services: traces across REST and gRPC for free, metrics with exemplars, logs stamped with the trace_id, custom spans that carry the trace across Kafka, the honest auto/custom/hybrid trade-off, and a Grafana walkthrough that pivots trace → logs → metrics on one click.",
-    "The pipeline part moved the costly decisions into the Collector: tail sampling that keeps errors, slow, and critical routes at volume while the app stays out of the sampling business — and continuous profiling as the fourth signal, where the CPU goes inside a slow span.",
+    "The pipeline part moved the costly decisions into the Collector: tail sampling that keeps errors, slow, and critical routes at volume while the app stays out of the sampling business, continuous profiling as the fourth signal, and a live service graph built from the traces — the whole system, at a glance.",
     "The tutorial mirrors these slides chapter for chapter (§0–§11), with six example services, the shared protos and obs library, and a runnable demo per chapter. It is authored against the target versions but not yet run end to end — it ships marked unverified, and a live rehearsal against the real stack is the next milestone.",
   ], { fontSize: 15 });
   addNotes(s,
