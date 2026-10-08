@@ -1,5 +1,12 @@
 # 🔭 Observability for Python with OpenTelemetry & the Grafana LGTM Stack
 
+> **Looking for the multi-language version?** This Python-focused project is the
+> predecessor to the
+> [OpenTelemetry Observability Tutorial](https://patterncatalyst.github.io/otel-observability-tutorial/)
+> ([repo](https://github.com/patterncatalyst/otel-observability-tutorial)), which
+> covers the same five signals across **Spring Boot, Quarkus, and Python** side by
+> side on one shared stack. This repo remains the focused Python edition.
+
 A demo-driven talk and companion tutorial. You instrument a realistic set of
 Python services — **order, inventory, payment, shipping, notification, review** —
 where one `POST /orders` fans out across **REST**, **gRPC**, **GraphQL**,
