@@ -646,6 +646,32 @@ divider("THE PIPELINE", "Decide in the Collector",
     "Be honest about iteration state: this is authored against the target versions but not yet run end-to-end here, so it ships marked unverified, and a live rehearsal is the next milestone. Point people at the repo — the tutorial mirrors these slides chapter for chapter, and every example has a runnable demo.sh.");
 }
 
+
+/* --- Scan to explore (QR codes) --- */
+{
+  const s = S();
+  addContentTitle(s, "SCAN TO EXPLORE", "Take it with you");
+
+  s.addImage({ path: `${ASSETS}/qr-obspy-site.png`, x: 2.30, y: 1.78, w: 3.10, h: 3.10 });
+  s.addText("The site", { x: 1.55, y: 4.98, w: 4.60, h: 0.40,
+    fontFace: FONT.title, fontSize: 18, bold: true, color: COLOR.ink, align: "center", valign: "middle" });
+  s.addText("Chapters, the runnable Python services, and the LGTM dashboards", { x: 1.45, y: 5.40, w: 4.80, h: 0.72,
+    fontFace: FONT.body, fontSize: 13, italic: true, color: COLOR.caption, align: "center", valign: "top" });
+  s.addText("patterncatalyst.github.io/observability-python-otel-lgtm", { x: 1.45, y: 6.12, w: 4.80, h: 0.32,
+    fontFace: FONT.mono, fontSize: 9, color: COLOR.red, align: "center", valign: "middle" });
+
+  s.addImage({ path: `${ASSETS}/qr-hub.png`, x: 7.93, y: 1.78, w: 3.10, h: 3.10 });
+  s.addText("Workshops & Tutorials", { x: 7.18, y: 4.98, w: 4.60, h: 0.40,
+    fontFace: FONT.title, fontSize: 18, bold: true, color: COLOR.ink, align: "center", valign: "middle" });
+  s.addText("The whole series: every workshop, tutorial, and deck in one place", { x: 7.08, y: 5.40, w: 4.80, h: 0.72,
+    fontFace: FONT.body, fontSize: 13, italic: true, color: COLOR.caption, align: "center", valign: "top" });
+  s.addText("patterncatalyst.github.io/patterncatalyst-workshops-tutorials-list", { x: 7.08, y: 6.12, w: 4.80, h: 0.32,
+    fontFace: FONT.mono, fontSize: 9, color: COLOR.red, align: "center", valign: "middle" });
+
+  addNotes(s, "This is the OTel + LGTM (Python) deck. The two codes take it with you: on the left, the site: the chapters, the runnable Python services, and the LGTM dashboards. On the right, the Workshops and Tutorials hub: every workshop, tutorial, and deck in the series in one place. Both are public on the Pattern Catalyst GitHub organization.");
+}
+
+
 pres.writeFile({ fileName: OUT })
   .then(p => console.log("WROTE", p, "slides:", pageNum))
   .catch(e => { console.error(e); process.exit(1); });
